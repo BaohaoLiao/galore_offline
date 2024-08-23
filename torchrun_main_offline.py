@@ -73,9 +73,11 @@ def parse_args(args):
     
     # disable ddp, single_gpu
     parser.add_argument("--single_gpu", default=False, action="store_true")
+
+    # new
+    parser.add_argument("--data_dir", type=str, default=None)
     
     args = parser.parse_args(args)
-
     args = args_utils.check_args_torchrun_main(args)
     return args
 
@@ -83,7 +85,8 @@ def parse_args(args):
 @torch.no_grad()
 def evaluate_model(model, preprocess_batched, pad_idx, global_rank, world_size, device, batch_size):
     _time = time.time()
-    val_data = datasets.load_dataset("c4", "en", split="validation", streaming=True) #DGX
+    #val_data = datasets.load_dataset("c4", "en", split="validation", streaming=True) #DGX
+    val_data = datasets.load_dataset("json", data_dir=args.data_dir, split="validation", streaming=True) #DGX
     val_data = val_data.shuffle(seed=42)
     logger.info(f"Loaded validation dataset in {time.time() - _time:.2f} seconds")
 
@@ -167,7 +170,8 @@ def main(args):
         logger.info(f"{k:30} {v}")
     logger.info("*" * 40)
 
-    data = datasets.load_dataset("allenai/c4", "en", split="train", streaming=True)
+    #data = datasets.load_dataset("allenai/c4", "en", split="train", streaming=True)
+    data = datasets.load_dataset("json", data_dir=args.data_dir, split="train", streaming=True)
 
     seed_for_shuffle = 42 
     
