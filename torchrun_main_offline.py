@@ -561,6 +561,7 @@ def main(args):
     total_loss, evaluated_on_tokens = evaluate_model(
         model, preprocess_batched, pad_idx, global_rank, world_size, device, args.batch_size
     )
+    logger.info(f"Final eval loss: {total_loss}")
 
     """
     if global_rank == 0:
