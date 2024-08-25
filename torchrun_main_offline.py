@@ -428,7 +428,6 @@ def main(args):
         if global_step % args.gradient_accumulation != 0:
             continue
 
-
         # The below code is only executed during the update step
         
         # add grad clipping
@@ -487,16 +486,17 @@ def main(args):
             total_loss, evaluated_on_tokens = evaluate_model(
                 model, preprocess_batched, pad_idx, global_rank, world_size, device, args.batch_size
             )
-            """
             if global_rank == 0:
+                """
                 wandb.log({
                     "final_eval_loss": total_loss,
                     "final_eval_tokens": evaluated_on_tokens,
                     },
                     step=global_step,
                 )
-            """
-            logger.info(f"{update_step}/{global_step} step on {evaluated_on_tokens} tokens || eval loss: {total_loss}, eval ppl: {math.exp(total_loss)}")
+                """
+                logger.info("\n")
+                logger.info(f"{update_step}/{global_step} step on {evaluated_on_tokens} tokens || eval loss: {total_loss:.3f}, eval ppl: {math.exp(total_loss):.2f}")
 
         if not layer_wise_flag:
             lr = optimizer.param_groups[0]["lr"]
@@ -520,8 +520,9 @@ def main(args):
                 step=global_step,
             )
             """
-            logger.info(f"{update_step}/{global_step} step on {tokens_seen} tokens || train loss: {loss.item()}, lr: {lr}, " +
-                        f"{tokens_in_update / update_time} token/s, {args.total_batch_size / update_time} sample/s, {batches_in_update / update_time} batch/s")
+            logger.info("\n")
+            logger.info(f"{update_step}/{global_step} step on {tokens_seen} tokens || train loss: {loss.item():.3f}, lr: {lr:.6f}, " +
+                        f"{tokens_in_update / update_time:.1f} token/s, {args.total_batch_size / update_time:.1f} sample/s, {batches_in_update / update_time:.1f} batch/s")
         update_time = time.time()
 
     # ##############################
