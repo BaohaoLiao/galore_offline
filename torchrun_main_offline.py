@@ -408,8 +408,6 @@ def main(args):
 
     for batch_idx, batch in enumerate(dataloader):
 
-        print("!!!!!!!!!", global_step, args.gradient_accumulation)
-
         global_step += 1
         local_step += 1
 
@@ -497,8 +495,7 @@ def main(args):
                     step=global_step,
                 )
                 """
-                logger.info("\n")
-                logger.info(f"{update_step}/{global_step} step on {evaluated_on_tokens} tokens || eval loss: {total_loss:.3f}, eval ppl: {math.exp(total_loss):.2f}")
+                logger.info(f"\n{update_step}/{global_step} step on {evaluated_on_tokens} tokens || eval loss: {total_loss:.3f}, eval ppl: {math.exp(total_loss):.2f}")
 
         if not layer_wise_flag:
             lr = optimizer.param_groups[0]["lr"]
@@ -522,8 +519,7 @@ def main(args):
                 step=global_step,
             )
             """
-            logger.info("\n")
-            logger.info(f"{update_step}/{global_step} step on {tokens_seen} tokens || train loss: {loss.item():.3f}, lr: {lr:.6f}, " +
+            logger.info(f"\n{update_step}/{global_step} step on {tokens_seen} tokens || train loss: {loss.item():.3f}, lr: {lr:.6f}, " +
                         f"{tokens_in_update / update_time:.1f} token/s, {args.total_batch_size / update_time:.1f} sample/s, {batches_in_update / update_time:.1f} batch/s")
         update_time = time.time()
 
