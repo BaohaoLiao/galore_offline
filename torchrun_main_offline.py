@@ -76,6 +76,7 @@ def parse_args(args):
 
     # new
     parser.add_argument("--data_dir", type=str, default=None)
+    parser.add_argument("--wandb_save_dir", type=str, default="./wandb_out")
     
     args = parser.parse_args(args)
     args = args_utils.check_args_torchrun_main(args)
@@ -260,7 +261,7 @@ def main(args):
 
     if global_rank == 0:
         wandb.config.update(run_config, allow_val_change=True)
-        wandb.save(os.path.abspath(__file__), policy="now") # save current script
+        wandb.save(args.wandb_save_dir, policy="now") # save current script
         # fix tqdm visual length to 80 so that the progress bar
         # doesn't jump around when changing from external display to laptop
         pbar = tqdm(total=args.num_training_steps - update_step, desc="Update steps", ncols=80)
