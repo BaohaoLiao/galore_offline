@@ -408,7 +408,7 @@ def main(args):
 
     for batch_idx, batch in enumerate(dataloader):
 
-        print("!!!!!!!!!", global_step)
+        print("!!!!!!!!!", global_step, args.gradient_accumulation)
 
         global_step += 1
         local_step += 1
