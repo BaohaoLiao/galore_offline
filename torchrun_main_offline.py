@@ -3,6 +3,7 @@ import time
 import json
 import random
 import argparse
+import math
 import numpy as np
 
 import torch
@@ -16,7 +17,7 @@ from transformers import LlamaForCausalLM as HF_LlamaForCausalLM
 
 import datasets
 import datasets.distributed
-import wandb
+#import wandb
 
 from tqdm import tqdm
 from loguru import logger
@@ -76,7 +77,6 @@ def parse_args(args):
 
     # new
     parser.add_argument("--data_dir", type=str, default=None)
-    parser.add_argument("--wandb_save_dir", type=str, default="./wandb_out")
     
     args = parser.parse_args(args)
     args = args_utils.check_args_torchrun_main(args)
@@ -161,8 +161,8 @@ def main(args):
     if global_rank != 0: logger.remove()
             
     # initialize wandb without config (it is passed later)
-    if global_rank == 0:
-        wandb.init(project="galore-c4")
+    #if global_rank == 0:
+    #    wandb.init(project="galore-c4")
         
     logger.info(f"Using dist with rank {global_rank} (only rank 0 will log)")
     logger.info("*" * 40)
@@ -260,8 +260,8 @@ def main(args):
     })
 
     if global_rank == 0:
-        wandb.config.update(run_config, allow_val_change=True)
-        wandb.save(os.path.abspath(__file__), policy="now") # save current script
+        #wandb.config.update(run_config, allow_val_change=True)
+        #wandb.save(os.path.abspath(__file__), policy="now") # save current script
         # fix tqdm visual length to 80 so that the progress bar
         # doesn't jump around when changing from external display to laptop
         pbar = tqdm(total=args.num_training_steps - update_step, desc="Update steps", ncols=80)
@@ -457,7 +457,7 @@ def main(args):
                 "update_step": update_step,
                 "global_step": global_step,
                 "config": run_config,
-                "wandb": wandb.run.dir,
+                #"wandb": wandb.run.dir,
                 "dtype": args.dtype,
             }
             torch.save(optimizer_checkpoint, f"{current_model_directory}/optimizer.pt")
@@ -473,11 +473,13 @@ def main(args):
                 json.dump(training_state_checkpoint, f, indent=4)
                 
             # save wandb related info
+            """
             wandb_info = {
                 "wandb_id": wandb.run.id,
             }
             with open(f"{args.save_dir}/wandb.json", "w") as f:
                 json.dump(wandb_info, f, indent=4)
+            """
 
         # evaluation
         if update_step % args.eval_every == 0:
@@ -485,6 +487,7 @@ def main(args):
             total_loss, evaluated_on_tokens = evaluate_model(
                 model, preprocess_batched, pad_idx, global_rank, world_size, device, args.batch_size
             )
+            """
             if global_rank == 0:
                 wandb.log({
                     "final_eval_loss": total_loss,
@@ -492,7 +495,8 @@ def main(args):
                     },
                     step=global_step,
                 )
-            logger.info(f"Eval loss at step {update_step}: {total_loss}")
+            """
+            logger.info(f"{update_step}/{global_step} step on {evaluated_on_tokens} tokens || eval loss: {total_loss}, eval ppl: {math.exp(total_loss)}")
 
         if not layer_wise_flag:
             lr = optimizer.param_groups[0]["lr"]
@@ -503,6 +507,7 @@ def main(args):
         batches_in_update = args.gradient_accumulation * world_size
 
         if global_rank == 0:
+            """
             wandb.log({
                 "loss": loss.item(),
                 "lr": lr,
@@ -514,6 +519,9 @@ def main(args):
                 },
                 step=global_step,
             )
+            """
+            logger.info(f"{update_step}/{global_step} step on {tokens_seen} tokens || train loss: {loss.item()}, lr: {lr}, " +
+                        f"{tokens_in_update / update_time} token/s, {args.total_batch_size / update_time} sample/s, {batches_in_update / update_time} batch/s")
         update_time = time.time()
 
     # ##############################
@@ -534,7 +542,7 @@ def main(args):
             "update_step": update_step,
             "global_step": global_step,
             "config": run_config,
-            "wandb": wandb.run.dir,
+            #"wandb": wandb.run.dir,
             "dtype": args.dtype,
         }
         torch.save(optimizer_checkpoint, f"{current_model_directory}/optimizer.pt")
@@ -559,16 +567,17 @@ def main(args):
     total_loss, evaluated_on_tokens = evaluate_model(
         model, preprocess_batched, pad_idx, global_rank, world_size, device, args.batch_size
     )
-    logger.info(f"Final eval loss: {total_loss}")
 
     if global_rank == 0:
+        """
         wandb.log({
             "final_eval_loss": total_loss,
             "final_eval_tokens": evaluated_on_tokens,
             },
             step=global_step,
         )
-        logger.info(f"Final eval loss: {total_loss}")
+        """
+        logger.info(f"{update_step}/{global_step} step on {evaluated_on_tokens} tokens || eval loss: {total_loss}, eval ppl: {math.exp(total_loss)}")
 
     logger.info("Script finished successfully")
     print(f"Rank {global_rank} finished successfully")
