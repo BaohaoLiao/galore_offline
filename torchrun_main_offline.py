@@ -408,6 +408,8 @@ def main(args):
 
     for batch_idx, batch in enumerate(dataloader):
 
+        print("!!!!!!!!!", global_step)
+
         global_step += 1
         local_step += 1
 
