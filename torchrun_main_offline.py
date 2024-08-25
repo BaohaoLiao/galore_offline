@@ -200,6 +200,7 @@ def main(args):
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=None, num_workers=args.workers)
 
     model_config = AutoConfig.from_pretrained(args.model_config)
+    model_config.pad_token_id = tokenizer.pad_token_id
     if args.use_hf_model:
         model: HF_LlamaForCausalLM = AutoModelForCausalLM.from_config(model_config)
     else:
