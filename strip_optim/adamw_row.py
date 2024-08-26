@@ -99,15 +99,13 @@ class AdamWRow(Optimizer):
                 state["step"] += 1
 
                 if "sample_ratio" in group:
+                    print(f"lr: {group["lr"]}, wd: {group["weight_decay"]}")
                     sample_ratio = group["sample_ratio"]
                     num_rows = p.size(0)
                     num_sampled = int(num_rows * sample_ratio)
                     sampled_indices = torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device)
 
                     # Use advanced indexing to update only the sampled rows
-                    import copy
-                    tmp = copy.deepcopy(exp_avg[sampled_indices])
-
                     sampled_exp_avg = exp_avg[sampled_indices]
                     sampled_exp_avg_sq = exp_avg_sq[sampled_indices]
                     sampled_grad = grad[sampled_indices]
@@ -116,8 +114,6 @@ class AdamWRow(Optimizer):
                     sampled_exp_avg.mul_(beta1).add_(sampled_grad, alpha=(1.0 - beta1))
                     sampled_exp_avg_sq.mul_(beta2).addcmul_(sampled_grad, sampled_grad, value=1.0 - beta2)
                     sampled_denom = sampled_exp_avg_sq.sqrt().add_(group["eps"])
-
-                    print(torch.all(tmp!=sampled_exp_avg))
 
                     step_size = group["lr"]
                     if group["correct_bias"]:
