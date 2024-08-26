@@ -108,6 +108,10 @@ class AdamWRow(Optimizer):
                     sampled_exp_avg = exp_avg[sampled_indices]
                     sampled_exp_avg_sq = exp_avg_sq[sampled_indices]
                     sampled_grad = grad[sampled_indices]
+
+                    assert torch.all(sampled_exp_avg==exp_avg)
+                    assert torch.all(sampled_exp_avg_sq==exp_avg_sq)
+                    assert torch.all(sampled_grad==grad)
                     
                     # Decay the first and second moment running average coefficient
                     sampled_exp_avg.mul_(beta1).add_(sampled_grad, alpha=(1.0 - beta1))
