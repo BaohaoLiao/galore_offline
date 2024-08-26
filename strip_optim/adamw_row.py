@@ -99,11 +99,10 @@ class AdamWRow(Optimizer):
                 state["step"] += 1
 
                 if "sample_ratio" in group:
-                    print(f"lr: {group['lr']}, wd: {group['weight_decay']}")
                     sample_ratio = group["sample_ratio"]
                     num_rows = p.size(0)
                     num_sampled = int(num_rows * sample_ratio)
-                    sampled_indices = torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device)
+                    sampled_indices = torch.sort(torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device))[0]
 
                     # Use advanced indexing to update only the sampled rows
                     sampled_exp_avg = exp_avg[sampled_indices]
