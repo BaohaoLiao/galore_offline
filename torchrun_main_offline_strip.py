@@ -301,7 +301,7 @@ def main(args):
         id_strip_params = [id(p) for p in strip_params]
         regular_params = [p for p in model.parameters() if id(p) not in id_strip_params]
         param_groups = [{'params': regular_params}, 
-                        {'params': strip_params, 'sample_ratio': 1.0}]
+                        {'params': strip_params, 'sample_ratio': 0.25}]
         
     # print params and trainable params
     logger.info(f"\n{model}\n")
@@ -315,7 +315,7 @@ def main(args):
     if args.optimizer.lower() == "adam":
         optimizer = torch.optim.Adam(trainable_params, lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer.lower() == "strip_adamw":
-        optimizer = StripAdamW(trainable_params, lr=args.lr, weight_decay=args.weight_decay)
+        optimizer = StripAdamW(param_groups, lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer.lower() == "galore_adamw":
         # redefine way to call galore_adamw
         optimizer = GaLoreAdamW(param_groups, lr=args.lr, weight_decay=args.weight_decay)
