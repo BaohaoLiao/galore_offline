@@ -80,6 +80,7 @@ def parse_args(args):
     # new
     parser.add_argument("--data_dir", type=str, default=None)
     parser.add_argument("--tokenizer_name", type=str, default=None)
+    parser.add_argument("--sample_ratio", type=float, default=1.0)
     
     args = parser.parse_args(args)
     args = args_utils.check_args_torchrun_main(args)
@@ -301,7 +302,7 @@ def main(args):
         id_strip_params = [id(p) for p in strip_params]
         regular_params = [p for p in model.parameters() if id(p) not in id_strip_params]
         param_groups = [{'params': regular_params}, 
-                        {'params': strip_params, 'sample_ratio': 1.0}]
+                        {'params': strip_params, 'sample_ratio': args.sample_ratio}]
     elif args.optimizer.lower() == "strip_adamw_row_importance":
         strip_params = []
         target_modules_list = ["attn", "mlp"]
@@ -315,7 +316,7 @@ def main(args):
         id_strip_params = [id(p) for p in strip_params]
         regular_params = [p for p in model.parameters() if id(p) not in id_strip_params]
         param_groups = [{'params': regular_params}, 
-                        {'params': strip_params, 'sample_ratio': 0.25, 'sample_start': 100}]
+                        {'params': strip_params, 'sample_ratio': args.sample_ratio, 'sample_start': 100}]
         
     # print params and trainable params
     logger.info(f"\n{model}\n")
