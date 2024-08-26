@@ -29,7 +29,7 @@ from peft_pretraining.modeling_llama import LlamaForCausalLM
 import bitsandbytes as bnb
 from galore_torch import GaLoreAdamW, GaLoreAdamW8bit, GaLoreAdafactor
 
-from strip_optim import StripAdamWRow, StripAdamWColumn
+from strip_optim import StripAdamWRow, StripAdamWColumn, StripAdamWRowImportance
 
 transformers.logging.set_verbosity_error()
 
@@ -302,6 +302,20 @@ def main(args):
         regular_params = [p for p in model.parameters() if id(p) not in id_strip_params]
         param_groups = [{'params': regular_params}, 
                         {'params': strip_params, 'sample_ratio': 0.25}]
+    elif "importance" in args.optimizer.lower():
+        strip_params = []
+        target_modules_list = ["attn", "mlp"]
+        for module_name, module in model.named_modules():
+            if not isinstance(module, nn.Linear):
+                continue
+            if not any(target_key in module_name for target_key in target_modules_list):
+                continue
+            print('enable Strip for weights in module: ', module_name)
+            strip_params.append(module.weight)
+        id_strip_params = [id(p) for p in strip_params]
+        regular_params = [p for p in model.parameters() if id(p) not in id_strip_params]
+        param_groups = [{'params': regular_params}, 
+                        {'params': strip_params, 'sample_ratio': 0.25, 'sample_start': 100}]
         
     # print params and trainable params
     logger.info(f"\n{model}\n")
@@ -318,6 +332,8 @@ def main(args):
         optimizer = StripAdamWRow(param_groups, lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer.lower() == "strip_adamw_column":
         optimizer = StripAdamWColumn(param_groups, lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer.lower() == "strip_adamw_row_importance":
+        optimizer = StripAdamWRowImportance(param_groups, lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer.lower() == "galore_adamw":
         # redefine way to call galore_adamw
         optimizer = GaLoreAdamW(param_groups, lr=args.lr, weight_decay=args.weight_decay)
