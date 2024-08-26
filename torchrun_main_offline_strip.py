@@ -288,7 +288,7 @@ def main(args):
         # then call galore_adamw
         param_groups = [{'params': regular_params}, 
                         {'params': galore_params, 'rank': args.rank, 'update_proj_gap': args.update_proj_gap, 'scale': args.galore_scale, 'proj_type': args.proj_type}]
-    elif "strip" in args.optimizer.lower():
+    elif args.optimizer.lower() == "strip_adamw_row" or args.optimizer.lower() == "strip_adamw_column":
         strip_params = []
         target_modules_list = ["attn", "mlp"]
         for module_name, module in model.named_modules():
@@ -302,7 +302,7 @@ def main(args):
         regular_params = [p for p in model.parameters() if id(p) not in id_strip_params]
         param_groups = [{'params': regular_params}, 
                         {'params': strip_params, 'sample_ratio': 0.25}]
-    elif "importance" in args.optimizer.lower():
+    elif args.optimizer.lower() == "strip_adamw_row_importance":
         strip_params = []
         target_modules_list = ["attn", "mlp"]
         for module_name, module in model.named_modules():

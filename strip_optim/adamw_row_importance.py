@@ -104,7 +104,6 @@ class AdamWRowImportance(Optimizer):
                     # Update average absolute gradient for each row
                     avg_abs_grad.mul_(state["step"] - 1).add_(grad.abs().mean(dim=1)).div_(state["step"])
 
-            
                     sample_ratio = group["sample_ratio"]
                     sample_start = group["sample_start"]
                     num_rows = p.size(0)
