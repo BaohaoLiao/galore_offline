@@ -140,15 +140,15 @@ class AdamWRow(Optimizer):
                         bias_correction2 = 1.0 - beta2 ** state["step"]
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
-                    p.addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
+                    #p.addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
+                    # Apply updates to p (no in-place operation)
+                    p[sampled_indices] = p[sampled_indices] - step_size * (sampled_exp_avg / sampled_denom)
 
                     if group["weight_decay"] > 0.0:
-                        p.add_(p[sampled_indices], alpha=(-group["lr"] * group["weight_decay"]))
+                        #p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+                        p[sampled_indices] = p[sampled_indices] - group["lr"] * group["weight_decay"] * p[sampled_indices]
 
-                    state["exp_avg"], state["exp_avg_sq"] = sampled_exp_avg, sampled_exp_avg_sq
-
-
-
+                    state["exp_avg"][sampled_indices], state["exp_avg_sq"][sampled_indices] = sampled_exp_avg, sampled_exp_avg_sq
 
                     """
                     sample_ratio = group["sample_ratio"]
