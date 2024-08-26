@@ -105,9 +105,9 @@ class AdamWRow(Optimizer):
                     sampled_indices = torch.arange(num_rows).to(p.device) #torch.sort(torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device))[0]
 
                     # Use advanced indexing to update only the sampled rows
-                    sampled_exp_avg = exp_avg[sampled_indices]
-                    sampled_exp_avg_sq = exp_avg_sq[sampled_indices]
-                    sampled_grad = grad[sampled_indices]
+                    sampled_exp_avg = exp_avg[sampled_indices].contiguous()
+                    sampled_exp_avg_sq = exp_avg_sq[sampled_indices].contiguous()
+                    sampled_grad = grad[sampled_indices].contiguous()
 
                     assert torch.all(sampled_exp_avg==exp_avg)
                     assert torch.all(sampled_exp_avg_sq==exp_avg_sq)
