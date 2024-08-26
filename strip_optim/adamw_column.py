@@ -12,7 +12,7 @@ from torch.optim import Optimizer
 from transformers.utils.versions import require_version
 
 
-class AdamW(Optimizer):
+class AdamWColumn(Optimizer):
     """
     Implements Adam algorithm with weight decay fix as introduced in [Decoupled Weight Decay
     Regularization](https://arxiv.org/abs/1711.05101).
@@ -100,14 +100,14 @@ class AdamW(Optimizer):
 
                 if "sample_ratio" in group:
                     sample_ratio = group["sample_ratio"]
-                    num_rows = p.size(0)
-                    num_sampled = int(num_rows * sample_ratio)
-                    sampled_indices = torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device)
+                    num_columns = p.size(1)
+                    num_sampled = int(num_columns * sample_ratio)
+                    sampled_indices = torch.tensor(random.sample(range(num_columns), num_sampled), device=p.device)
 
-                    # Use advanced indexing to update only the sampled rows
-                    sampled_exp_avg = exp_avg[sampled_indices]
-                    sampled_exp_avg_sq = exp_avg_sq[sampled_indices]
-                    sampled_grad = grad[sampled_indices]
+                    # Use advanced indexing to update only the sampled columns
+                    sampled_exp_avg = exp_avg[:, sampled_indices]
+                    sampled_exp_avg_sq = exp_avg_sq[:, sampled_indices]
+                    sampled_grad = grad[:, sampled_indices]
                     
                     # Decay the first and second moment running average coefficient
                     sampled_exp_avg.mul_(beta1).add_(sampled_grad, alpha=(1.0 - beta1))
@@ -120,11 +120,11 @@ class AdamW(Optimizer):
                         bias_correction2 = 1.0 - beta2 ** state["step"]
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
-                    p[sampled_indices].addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
+                    p[:, sampled_indices].addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
 
-                    # Apply weight decay only to the sampled rows
+                    # Apply weight decay only to the sampled columns
                     if group["weight_decay"] > 0.0:
-                        p[sampled_indices].add_(p[sampled_indices], alpha=(-group["lr"] * group["weight_decay"]))
+                        p[:, sampled_indices].add_(p[:, sampled_indices], alpha=(-group["lr"] * group["weight_decay"]))
                 else:
                     # Decay the first and second moment running average coefficient
                     # In-place operations to update the averages at the same time
