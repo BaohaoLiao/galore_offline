@@ -99,7 +99,7 @@ class AdamWRow(Optimizer):
                 state["step"] += 1
 
                 if "sample_ratio" in group:
-                    print(f"lr: {group["lr"]}, wd: {group["weight_decay"]}")
+                    print(f"lr: {group['lr']}, wd: {group['weight_decay']}")
                     sample_ratio = group["sample_ratio"]
                     num_rows = p.size(0)
                     num_sampled = int(num_rows * sample_ratio)
