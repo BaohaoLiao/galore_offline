@@ -103,6 +103,7 @@ class AdamWRow(Optimizer):
                     num_rows = p.size(0)
                     num_sampled = int(num_rows * sample_ratio)
                     sampled_indices = torch.sort(torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device))[0]
+                    print(sampled_indices)
 
                     # Use advanced indexing to update only the sampled rows
                     sampled_exp_avg = exp_avg[sampled_indices]
