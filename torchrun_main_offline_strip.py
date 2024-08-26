@@ -29,7 +29,7 @@ from peft_pretraining.modeling_llama import LlamaForCausalLM
 import bitsandbytes as bnb
 from galore_torch import GaLoreAdamW, GaLoreAdamW8bit, GaLoreAdafactor
 
-from strip_optim import StripAdamWRow, StripAdamWColumn, StripAdamWRowImportance
+from strip_optim import StripAdamWRow, StripAdamWColumn, StripAdamWRowImportance, StripAdamWColumnImportance
 
 transformers.logging.set_verbosity_error()
 
@@ -303,7 +303,7 @@ def main(args):
         regular_params = [p for p in model.parameters() if id(p) not in id_strip_params]
         param_groups = [{'params': regular_params}, 
                         {'params': strip_params, 'sample_ratio': args.sample_ratio}]
-    elif args.optimizer.lower() == "strip_adamw_row_importance":
+    elif args.optimizer.lower() == "strip_adamw_row_importance" or args.optimizer.lower() == "strip_adamw_column_importance":
         strip_params = []
         target_modules_list = ["attn", "mlp"]
         for module_name, module in model.named_modules():
@@ -335,6 +335,8 @@ def main(args):
         optimizer = StripAdamWColumn(param_groups, lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer.lower() == "strip_adamw_row_importance":
         optimizer = StripAdamWRowImportance(param_groups, lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer.lower() == "strip_adamw_column_importance":
+        optimizer = StripAdamWColumnImportance(param_groups, lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer.lower() == "galore_adamw":
         # redefine way to call galore_adamw
         optimizer = GaLoreAdamW(param_groups, lr=args.lr, weight_decay=args.weight_decay)
