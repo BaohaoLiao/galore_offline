@@ -100,6 +100,7 @@ class AdamWRow(Optimizer):
 
                 if "sample_ratio" in group:
                     # conventional
+                    """
                     import copy
                     exp_avg_cp, exp_avg_sq_cp = copy.deepcopy(exp_avg), copy.deepcopy(exp_avg_sq)
                     grad_cp = copy.deepcopy(grad)
@@ -119,6 +120,32 @@ class AdamWRow(Optimizer):
                         p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
 
                     state["exp_avg"], state["exp_avg_sq"] = exp_avg_cp, exp_avg_sq_cp
+                    """
+                    
+                    # strip
+                    num_rows = p.size(0)
+                    sampled_indices = torch.arange(num_rows).to(p.device)
+
+                    sampled_exp_avg = exp_avg[sampled_indices]
+                    sampled_exp_avg_sq = exp_avg_sq[sampled_indices]
+                    sampled_grad = grad[sampled_indices]
+
+                    sampled_exp_avg.mul_(beta1).add_(sampled_grad, alpha=(1.0 - beta1))
+                    sampled_exp_avg_sq.mul_(beta2).addcmul_(sampled_grad, sampled_grad, value=1.0 - beta2)
+                    sampled_denom = sampled_exp_avg_sq.sqrt().add_(group["eps"])
+
+                    step_size = group["lr"]
+                    if group["correct_bias"]:
+                        bias_correction1 = 1.0 - beta1 ** state["step"]
+                        bias_correction2 = 1.0 - beta2 ** state["step"]
+                        step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
+
+                    p.addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
+
+                    if group["weight_decay"] > 0.0:
+                        p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+
+                    state["exp_avg"], state["exp_avg_sq"] = sampled_exp_avg, sampled_exp_avg_sq
 
                     """
                     sample_ratio = group["sample_ratio"]
