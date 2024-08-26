@@ -123,6 +123,7 @@ class AdamWRow(Optimizer):
                     """
                     
                     # strip
+                    """
                     num_rows = p.size(0)
                     sampled_indices = torch.arange(num_rows).to(p.device)
 
@@ -149,21 +150,17 @@ class AdamWRow(Optimizer):
                         p[sampled_indices] = p[sampled_indices] - group["lr"] * group["weight_decay"] * p[sampled_indices]
 
                     state["exp_avg"][sampled_indices], state["exp_avg_sq"][sampled_indices] = sampled_exp_avg, sampled_exp_avg_sq
-
                     """
+
                     sample_ratio = group["sample_ratio"]
                     num_rows = p.size(0)
                     num_sampled = int(num_rows * sample_ratio)
-                    sampled_indices = torch.arange(num_rows).to(p.device) #torch.sort(torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device))[0]
+                    sampled_indices = torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device)
 
                     # Use advanced indexing to update only the sampled rows
-                    sampled_exp_avg = exp_avg[sampled_indices].contiguous()
-                    sampled_exp_avg_sq = exp_avg_sq[sampled_indices].contiguous()
-                    sampled_grad = grad[sampled_indices].contiguous()
-
-                    assert torch.all(sampled_exp_avg==exp_avg)
-                    assert torch.all(sampled_exp_avg_sq==exp_avg_sq)
-                    assert torch.all(sampled_grad==grad)
+                    sampled_exp_avg = exp_avg[sampled_indices]
+                    sampled_exp_avg_sq = exp_avg_sq[sampled_indices]
+                    sampled_grad = grad[sampled_indices]
                     
                     # Decay the first and second moment running average coefficient
                     sampled_exp_avg.mul_(beta1).add_(sampled_grad, alpha=(1.0 - beta1))
@@ -177,13 +174,17 @@ class AdamWRow(Optimizer):
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
                     #p[sampled_indices].addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
-                    p.addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
+                    #p.addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
+                    p[sampled_indices] = p[sampled_indices] - step_size * (sampled_exp_avg / sampled_denom)
 
                     # Apply weight decay only to the sampled rows
                     if group["weight_decay"] > 0.0:
                         #p[sampled_indices].add_(p[sampled_indices], alpha=(-group["lr"] * group["weight_decay"]))
-                        p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
-                    """
+                        #p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+                        p[sampled_indices] = p[sampled_indices] - group["lr"] * group["weight_decay"] * p[sampled_indices]
+
+                    state["exp_avg"][sampled_indices], state["exp_avg_sq"][sampled_indices] = sampled_exp_avg, sampled_exp_avg_sq
+
                 else:
                     # Decay the first and second moment running average coefficient
                     # In-place operations to update the averages at the same time
