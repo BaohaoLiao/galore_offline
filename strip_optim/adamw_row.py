@@ -117,7 +117,7 @@ class AdamWRow(Optimizer):
                     sampled_exp_avg_sq.mul_(beta2).addcmul_(sampled_grad, sampled_grad, value=1.0 - beta2)
                     sampled_denom = sampled_exp_avg_sq.sqrt().add_(group["eps"])
 
-                    print((tmp==sampled_exp_avg))
+                    print(torch.all(tmp==sampled_exp_avg))
 
                     step_size = group["lr"]
                     if group["correct_bias"]:
