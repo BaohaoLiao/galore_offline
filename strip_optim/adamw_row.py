@@ -99,6 +99,28 @@ class AdamWRow(Optimizer):
                 state["step"] += 1
 
                 if "sample_ratio" in group:
+                    # conventional
+                    import copy
+                    exp_avg_cp, exp_avg_sq_cp = copy.deepcopy(exp_avg), copy.deepcopy(exp_avg_sq)
+                    grad_cp = copy.deepcopy(grad)
+
+                    exp_avg_cp.mul_(beta1).add_(grad_cp, alpha=(1.0 - beta1))
+                    exp_avg_sq_cp.mul_(beta2).addcmul_(grad_cp, grad_cp, value=1.0 - beta2)
+                    denom_cp = exp_avg_sq_cp.sqrt().add_(group["eps"])
+
+                    step_size = group["lr"]
+                    if group["correct_bias"]:
+                        bias_correction1 = 1.0 - beta1 ** state["step"]
+                        bias_correction2 = 1.0 - beta2 ** state["step"]
+                        step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
+
+                    p.addcdiv_(exp_avg_cp, denom_cp, value=-step_size)
+                    if group["weight_decay"] > 0.0:
+                        p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+
+                    state["exp_avg"], state["exp_avg_sq"] = exp_avg_cp, exp_avg_sq_cp
+
+                    """
                     sample_ratio = group["sample_ratio"]
                     num_rows = p.size(0)
                     num_sampled = int(num_rows * sample_ratio)
@@ -131,6 +153,7 @@ class AdamWRow(Optimizer):
                     if group["weight_decay"] > 0.0:
                         #p[sampled_indices].add_(p[sampled_indices], alpha=(-group["lr"] * group["weight_decay"]))
                         p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+                    """
                 else:
                     # Decay the first and second moment running average coefficient
                     # In-place operations to update the averages at the same time
