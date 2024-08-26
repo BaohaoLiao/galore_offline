@@ -102,12 +102,12 @@ class AdamWColumn(Optimizer):
                     sample_ratio = group["sample_ratio"]
                     num_columns = p.size(1)
                     num_sampled = int(num_columns * sample_ratio)
-                    sampled_indices = torch.tensor(random.sample(range(num_columns), num_sampled), device=p.device)
+                    sampled_indices = torch.sort(torch.tensor(random.sample(range(num_columns), num_sampled), device=p.device))[0]
 
                     # Use advanced indexing to update only the sampled columns
-                    sampled_exp_avg = exp_avg[:, sampled_indices]
-                    sampled_exp_avg_sq = exp_avg_sq[:, sampled_indices]
-                    sampled_grad = grad[:, sampled_indices]
+                    sampled_exp_avg = exp_avg[:, sampled_indices].contiguous()
+                    sampled_exp_avg_sq = exp_avg_sq[:, sampled_indices].contiguous()
+                    sampled_grad = grad[:, sampled_indices].contiguous()
                     
                     # Decay the first and second moment running average coefficient
                     sampled_exp_avg.mul_(beta1).add_(sampled_grad, alpha=(1.0 - beta1))
@@ -120,11 +120,13 @@ class AdamWColumn(Optimizer):
                         bias_correction2 = 1.0 - beta2 ** state["step"]
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
-                    p[:, sampled_indices].addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
+                    p[:, sampled_indices] = p[:, sampled_indices] - step_size * (sampled_exp_avg / sampled_denom)
 
                     # Apply weight decay only to the sampled columns
                     if group["weight_decay"] > 0.0:
-                        p[:, sampled_indices].add_(p[:, sampled_indices], alpha=(-group["lr"] * group["weight_decay"]))
+                        p[:, sampled_indices] = p[:, sampled_indices] - group["lr"] * group["weight_decay"] * p[:, sampled_indices]
+
+                    state["exp_avg"][:, sampled_indices], state["exp_avg_sq"][:, sampled_indices] = sampled_exp_avg, sampled_exp_avg_sq
                 else:
                     # Decay the first and second moment running average coefficient
                     # In-place operations to update the averages at the same time
