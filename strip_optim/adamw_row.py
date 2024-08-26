@@ -155,12 +155,12 @@ class AdamWRow(Optimizer):
                     sample_ratio = group["sample_ratio"]
                     num_rows = p.size(0)
                     num_sampled = int(num_rows * sample_ratio)
-                    sampled_indices = torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device)
+                    sampled_indices = torch.sort(torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device))[0]
 
                     # Use advanced indexing to update only the sampled rows
-                    sampled_exp_avg = exp_avg[sampled_indices]
-                    sampled_exp_avg_sq = exp_avg_sq[sampled_indices]
-                    sampled_grad = grad[sampled_indices]
+                    sampled_exp_avg = exp_avg[sampled_indices].contiguous()
+                    sampled_exp_avg_sq = exp_avg_sq[sampled_indices].contiguous()
+                    sampled_grad = grad[sampled_indices].contiguous()
                     
                     # Decay the first and second moment running average coefficient
                     sampled_exp_avg.mul_(beta1).add_(sampled_grad, alpha=(1.0 - beta1))
