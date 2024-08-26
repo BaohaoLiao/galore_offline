@@ -145,7 +145,10 @@ class AdamWRow(Optimizer):
                     if group["weight_decay"] > 0.0:
                         p.add_(p[sampled_indices], alpha=(-group["lr"] * group["weight_decay"]))
 
-                    #state["exp_avg"], state["exp_avg_sq"] = sampled_exp_avg, sampled_exp_avg_sq
+                    state["exp_avg"], state["exp_avg_sq"] = sampled_exp_avg, sampled_exp_avg_sq
+
+
+
 
                     """
                     sample_ratio = group["sample_ratio"]
