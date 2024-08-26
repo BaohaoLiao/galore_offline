@@ -110,11 +110,11 @@ class AdamWRowImportance(Optimizer):
                     num_sampled = int(num_rows * sample_ratio)
 
                     if state["step"] < sample_start:
-                        sampled_indices = torch.randint(0, num_rows, (num_sampled,), device=p.device)
+                        sampled_indices = torch.sort(torch.tensor(random.sample(range(num_rows), num_sampled), device=p.device))[0]
                     else:
                         # Importance sampling after `importance_sampling_start` steps
                         sampling_probs = avg_abs_grad / avg_abs_grad.sum()
-                        sampled_indices = torch.multinomial(sampling_probs, num_sampled, replacement=False)
+                        sampled_indices = torch.sort(torch.multinomial(sampling_probs, num_sampled, replacement=False))[0]
                     
                     # Use advanced indexing to update only the sampled rows
                     sampled_exp_avg = exp_avg[sampled_indices]
@@ -132,11 +132,15 @@ class AdamWRowImportance(Optimizer):
                         bias_correction2 = 1.0 - beta2 ** state["step"]
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
-                    p[sampled_indices].addcdiv_(sampled_exp_avg, sampled_denom, value=-step_size)
+                    p[sampled_indices] = p[sampled_indices] - step_size * (sampled_exp_avg / sampled_denom)
 
                     # Apply weight decay only to the sampled rows
                     if group["weight_decay"] > 0.0:
-                        p[sampled_indices].add_(p[sampled_indices], alpha=(-group["lr"] * group["weight_decay"]))
+                        p[sampled_indices] = p[sampled_indices] - group["lr"] * group["weight_decay"] * p[sampled_indices]
+
+                    state["exp_avg"][sampled_indices] = sampled_exp_avg
+                    state["exp_avg_sq"][sampled_indices] = sampled_exp_avg_sq
+                    state["avg_abs_grad"] = avg_abs_grad
                 else:
 
                     # State initialization

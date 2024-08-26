@@ -316,7 +316,7 @@ def main(args):
         id_strip_params = [id(p) for p in strip_params]
         regular_params = [p for p in model.parameters() if id(p) not in id_strip_params]
         param_groups = [{'params': regular_params}, 
-                        {'params': strip_params, 'sample_ratio': args.sample_ratio, 'sample_start': 100}]
+                        {'params': strip_params, 'sample_ratio': args.sample_ratio, 'sample_start': 1000}]
         
     # print params and trainable params
     logger.info(f"\n{model}\n")
