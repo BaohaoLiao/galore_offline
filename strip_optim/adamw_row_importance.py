@@ -85,25 +85,26 @@ class AdamWRowImportance(Optimizer):
 
                 state = self.state[p]
 
-                # State initialization
-                if len(state) == 0:
-                    state["step"] = 0
-                    # Exponential moving average of gradient values
-                    state["exp_avg"] = torch.zeros_like(p)
-                    # Exponential moving average of squared gradient values
-                    state["exp_avg_sq"] = torch.zeros_like(p)
-                    # Average absolute gradient for importance sampling
-                    state["avg_abs_grad"] = torch.zeros(p.size(0), device=p.device)
-
-                exp_avg, exp_avg_sq, avg_abs_grad = state["exp_avg"], state["exp_avg_sq"], state["avg_abs_grad"]
-                beta1, beta2 = group["betas"]
-
-                state["step"] += 1
-
-                # Update average absolute gradient for each row
-                avg_abs_grad.mul_(state["step"] - 1).add_(grad.abs().mean(dim=1)).div_(state["step"])
-
                 if "sample_ratio" in group:
+                    # State initialization
+                    if len(state) == 0:
+                        state["step"] = 0
+                        # Exponential moving average of gradient values
+                        state["exp_avg"] = torch.zeros_like(p)
+                        # Exponential moving average of squared gradient values
+                        state["exp_avg_sq"] = torch.zeros_like(p)
+                        # Average absolute gradient for importance sampling
+                        state["avg_abs_grad"] = torch.zeros(p.size(0), device=p.device)
+
+                    exp_avg, exp_avg_sq, avg_abs_grad = state["exp_avg"], state["exp_avg_sq"], state["avg_abs_grad"]
+                    beta1, beta2 = group["betas"]
+
+                    state["step"] += 1
+
+                    # Update average absolute gradient for each row
+                    avg_abs_grad.mul_(state["step"] - 1).add_(grad.abs().mean(dim=1)).div_(state["step"])
+
+            
                     sample_ratio = group["sample_ratio"]
                     sample_start = group["sample_start"]
                     num_rows = p.size(0)
@@ -138,6 +139,20 @@ class AdamWRowImportance(Optimizer):
                     if group["weight_decay"] > 0.0:
                         p[sampled_indices].add_(p[sampled_indices], alpha=(-group["lr"] * group["weight_decay"]))
                 else:
+
+                    # State initialization
+                    if len(state) == 0:
+                        state["step"] = 0
+                        # Exponential moving average of gradient values
+                        state["exp_avg"] = torch.zeros_like(p)
+                        # Exponential moving average of squared gradient values
+                        state["exp_avg_sq"] = torch.zeros_like(p)
+
+                    exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
+                    beta1, beta2 = group["betas"]
+
+                    state["step"] += 1
+
                     # Decay the first and second moment running average coefficient
                     # In-place operations to update the averages at the same time
                     exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
