@@ -114,6 +114,8 @@ class AdamWRowImportance(Optimizer):
 
                         # Importance sampling after `importance_sampling_start` steps
                         sampling_probs = avg_abs_grad / avg_abs_grad.sum()
+                        sampling_probs = torch.clamp(sampling_probs, min=1e-6)
+                        sampling_probs /= sampling_probs.sum()
                         sampled_indices = torch.sort(torch.multinomial(sampling_probs, num_sampled, replacement=False))[0]
                     
                     # Use advanced indexing to update only the sampled rows

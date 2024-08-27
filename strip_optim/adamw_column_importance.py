@@ -94,7 +94,7 @@ class AdamWColumnImportance(Optimizer):
                         # Exponential moving average of squared gradient values
                         state["exp_avg_sq"] = torch.zeros_like(p)
                         # Average absolute gradient for importance sampling
-                        state["avg_abs_grad"] = torch.zeros(p.size(1), device=p.device)
+                        state["avg_abs_grad"] = torch.ones(p.size(1), device=p.device)
 
                     exp_avg, exp_avg_sq, avg_abs_grad = state["exp_avg"], state["exp_avg_sq"], state["avg_abs_grad"]
                     beta1, beta2 = group["betas"]
@@ -113,7 +113,7 @@ class AdamWColumnImportance(Optimizer):
                         sampled_indices = torch.sort(torch.tensor(random.sample(range(num_columns), num_sampled), device=p.device))[0]
                     else:
                         # Update average absolute gradient for each row
-                        avg_abs_grad.mul_(state["step"] - 1 - sample_start).add_(grad.abs().mean(dim=0)).div_(state["step"] - sample_start)
+                        avg_abs_grad.mul_(state["step"] - sample_start - 1).add_(grad.abs().mean(dim=0)).div_(state["step"] - sample_start)
                         # Importance sampling after `importance_sampling_start` steps
                         sampling_probs = avg_abs_grad / avg_abs_grad.sum()
                         sampled_indices = torch.sort(torch.multinomial(sampling_probs, num_sampled, replacement=False))[0]
