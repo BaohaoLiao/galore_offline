@@ -113,9 +113,11 @@ class AdamWColumnImportance(Optimizer):
                         sampled_indices = torch.sort(torch.tensor(random.sample(range(num_columns), num_sampled), device=p.device))[0]
                     else:
                         # Update average absolute gradient for each row
-                        avg_abs_grad.mul_(state["step"] - sample_start - 1).add_(grad.abs().mean(dim=0)).div_(state["step"] - sample_start)
+                        avg_abs_grad.mul_(state["step"] - sample_start).add_(grad.abs().mean(dim=1)).div_(state["step"] - sample_start + 1)
                         # Importance sampling after `importance_sampling_start` steps
                         sampling_probs = avg_abs_grad / avg_abs_grad.sum()
+                        sampling_probs = torch.clamp(sampling_probs, min=1e-6)
+                        sampling_probs /= sampling_probs.sum()
                         sampled_indices = torch.sort(torch.multinomial(sampling_probs, num_sampled, replacement=False))[0]
                     
                     # Use advanced indexing to update only the sampled rows
