@@ -302,7 +302,7 @@ def main(args):
         id_strip_params = [id(p) for p in strip_params]
         regular_params = [p for p in model.parameters() if id(p) not in id_strip_params]
         param_groups = [{'params': regular_params}, 
-                        {'params': strip_params, 'sample_ratio': args.sample_ratio, 'lr': args.lr/args.sample_ratio}]
+                        {'params': strip_params, 'sample_ratio': args.sample_ratio}] #, 'lr': args.lr/args.sample_ratio}]
     elif args.optimizer.lower() == "strip_adamw_row_importance" or args.optimizer.lower() == "strip_adamw_column_importance":
         strip_params = []
         target_modules_list = ["attn", "mlp"]
