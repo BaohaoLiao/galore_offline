@@ -214,7 +214,7 @@ def main(args):
 
 
     # LoRA
-    if args.optimizer == "adamw_lora":
+    if args.optimizer == "adamw_lora" or args.optimizer == "adamw_lora_rectified":
         task_type = TaskType.CAUSAL_LM
         target_modules = ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj']
         lora_config = LoraConfig(
