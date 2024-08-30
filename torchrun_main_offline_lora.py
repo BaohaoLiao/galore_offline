@@ -29,7 +29,7 @@ from peft_pretraining.dataloader import PreprocessedIterableDataset
 from peft_pretraining.modeling_llama import LlamaForCausalLM
 
 import bitsandbytes as bnb
-from galore_torch import GaLoreAdamW, GaLoreAdamW8bit, GaLoreAdafactor, AdamWLoRA, AdamWLoRAR
+from galore_torch import GaLoreAdamW, GaLoreAdamW8bit, GaLoreAdafactor, AdamWLoRA, AdamWLoRAR, AdamWLoRAU
 
 transformers.logging.set_verbosity_error()
 
@@ -214,7 +214,7 @@ def main(args):
 
 
     # LoRA
-    if args.optimizer == "adamw_lora" or args.optimizer == "adamw_lora_rectified":
+    if args.optimizer == "adamw_lora" or args.optimizer == "adamw_lora_rectified" or args.optimizer == "adamw_lora_update":
         task_type = TaskType.CAUSAL_LM
         target_modules = ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj']
         lora_config = LoraConfig(
@@ -290,7 +290,7 @@ def main(args):
         pbar = tqdm(total=args.num_training_steps - update_step, desc="Update steps", ncols=80)
 
 
-    if args.optimizer.lower() == "adamw_lora" or args.optimizer.lower() == "adamw_lora_rectified":
+    if args.optimizer.lower() == "adamw_lora" or args.optimizer.lower() == "adamw_lora_rectified" or args.optimizer.lower() == "adamw_lora_update":
         lora_params = []
         lora_params_names = []
         target_modules_list = target_modules # TODO: check
@@ -368,6 +368,14 @@ def main(args):
         )
     elif args.optimizer.lower() == "adamw_lora_rectified":
         optimizer = AdamWLoRAR(
+            param_groups, 
+            lr=args.lr, 
+            weight_decay=args.weight_decay, 
+            lora_params_names=lora_params_names,
+            lora_target_keys= lora_target_keys
+        )
+    elif args.optimizer.lower() == "adamw_lora_update":
+        optimizer = AdamWLoRAU(
             param_groups, 
             lr=args.lr, 
             weight_decay=args.weight_decay, 
