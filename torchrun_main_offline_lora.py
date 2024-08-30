@@ -80,6 +80,7 @@ def parse_args(args):
     # new
     parser.add_argument("--data_dir", type=str, default=None)
     parser.add_argument("--tokenizer_name", type=str, default=None)
+    parser.add_argument("--lora_init", type=str, default=None)
     
     args = parser.parse_args(args)
     args = args_utils.check_args_torchrun_main(args)
@@ -305,6 +306,14 @@ def main(args):
                 continue
             if not any(target_key in module_name for target_key in target_modules_list):
                 continue
+
+            if args.lora_init == "kaiming":
+                if 'lora_B'  in module_name:
+                    nn.init.kaiming_uniform_(module.weight, a=math.sqrt(5))
+            elif args.lora_init == "gaussian":
+                if 'lora_B'  in module_name:
+                    nn.init.normal_(module.weight, std=1 / args.rank)
+
             lora_params.append(module.weight)
             lora_params_names.append(module_name)
 
