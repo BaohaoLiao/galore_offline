@@ -189,7 +189,7 @@ class AdamW(Optimizer):
                     lora_B_w, lora_B_exp_avg, lora_B_exp_avg_sq = nn_data["lora_B"].data, exp_avg_ABs[nn_data["lora_B"]], exp_avg_sq_ABs[nn_data["lora_B"]]
                     
                     exp_avg = lora_B_w @ lora_A_exp_avg + lora_B_exp_avg @ lora_A_w
-                    exp_avg_sq = lora_B_w @ lora_A_exp_avg_sq + lora_B_exp_avg_sq @ lora_A_w
+                    exp_avg_sq = (lora_B_w ** 2) @ lora_A_exp_avg_sq + lora_B_exp_avg_sq @ (lora_A_w ** 2)
                     denom = exp_avg_sq.sqrt().add_(group["eps"])
 
                     step_size = group["lr"]
