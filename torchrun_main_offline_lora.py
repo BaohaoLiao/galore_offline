@@ -311,7 +311,7 @@ def main(args):
                 if 'lora_B'  in module_name:
                     nn.init.kaiming_uniform_(module.weight, a=math.sqrt(5))
             elif args.lora_init == "gaussian":
-                if 'lora_B'  in module_name:
+                if ('lora_B' in module_name) or ('lora_A' in module_name):
                     nn.init.normal_(module.weight, std=1 / args.rank)
 
             lora_params.append(module.weight)
