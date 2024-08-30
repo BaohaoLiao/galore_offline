@@ -290,7 +290,7 @@ def main(args):
         pbar = tqdm(total=args.num_training_steps - update_step, desc="Update steps", ncols=80)
 
 
-    if args.optimizer.lower() == "adamw_lora":
+    if args.optimizer.lower() == "adamw_lora" or args.optimizer.lower() == "adamw_lora_rectified":
         lora_params = []
         lora_params_names = []
         target_modules_list = target_modules # TODO: check
