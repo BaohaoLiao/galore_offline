@@ -29,7 +29,7 @@ from peft_pretraining.dataloader import PreprocessedIterableDataset
 from peft_pretraining.modeling_llama import LlamaForCausalLM
 
 import bitsandbytes as bnb
-from galore_torch import GaLoreAdamW, GaLoreAdamW8bit, GaLoreAdafactor, AdamWLoRA
+from galore_torch import GaLoreAdamW, GaLoreAdamW8bit, GaLoreAdafactor, AdamWLoRA, AdamWLoRAR
 
 transformers.logging.set_verbosity_error()
 
@@ -360,6 +360,14 @@ def main(args):
     layer_wise_flag = False
     if args.optimizer.lower() == "adamw_lora":
         optimizer = AdamWLoRA(
+            param_groups, 
+            lr=args.lr, 
+            weight_decay=args.weight_decay, 
+            lora_params_names=lora_params_names,
+            lora_target_keys= lora_target_keys
+        )
+    elif args.optimizer.lower() == "adamw_lora_rectified":
+        optimizer = AdamWLoRAR(
             param_groups, 
             lr=args.lr, 
             weight_decay=args.weight_decay, 
