@@ -213,7 +213,7 @@ class AdamW(Optimizer):
                     p_lora_B, grad_lora_B = nn_data["lora_B"].data, p_norm_grad[nn_data["lora_B"]]
                     norm_grad = p_lora_B @ grad_lora_A + grad_lora_B @ p_lora_A_p
                     
-                    p.add_(norm_grad, alpha=-step_size)
+                    p.add_(norm_grad, alpha=-step_size * group["scale"])
 
                     # Just adding the square of the weights to the loss function is *not*
                     # the correct way of using L2 regularization/weight decay with Adam,
