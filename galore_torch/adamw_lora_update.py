@@ -181,19 +181,19 @@ class AdamW(Optimizer):
                 p_norm_grad[p] = norm_grad    
                 lora_ABs_cp[p] = copy.deepcopy(p.data)
 
-                p.add_(norm_grad, alpha=-step_size)
+                if group['update_proj_gap'] % state["step"] == 0:
+                    p.add_(norm_grad, alpha=-step_size)
 
-                # Just adding the square of the weights to the loss function is *not*
-                # the correct way of using L2 regularization/weight decay with Adam,
-                # since that will interact with the m and v parameters in strange ways.
-                #
-                # Instead we want to decay the weights in a manner that doesn't interact
-                # with the m/v parameters. This is equivalent to adding the square
-                # of the weights to the loss with plain (non-momentum) SGD.
-                # Add weight decay at the end (fixed version)
-                if group["weight_decay"] > 0.0:
-                    p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
-                    
+                    # Just adding the square of the weights to the loss function is *not*
+                    # the correct way of using L2 regularization/weight decay with Adam,
+                    # since that will interact with the m and v parameters in strange ways.
+                    #
+                    # Instead we want to decay the weights in a manner that doesn't interact
+                    # with the m/v parameters. This is equivalent to adding the square
+                    # of the weights to the loss with plain (non-momentum) SGD.
+                    # Add weight decay at the end (fixed version)
+                    if group["weight_decay"] > 0.0:
+                        p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
                                   
         for group in self.param_groups:
             glore_params_name = None
