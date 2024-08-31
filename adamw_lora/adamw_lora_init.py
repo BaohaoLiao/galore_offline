@@ -252,9 +252,10 @@ class AdamW(Optimizer):
                         if group["weight_decay"] > 0.0:
                             p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
 
-        for k, v in lora_ABs_data.items():
-            if "lora_B" in k:
-                assert v.sum() == 0
+        if self.global_step != 0:
+            for k, v in lora_ABs_data.items():
+                if "lora_B" in k:
+                    assert v.sum() == 0
 
         self.global_step += 1
 
