@@ -181,7 +181,12 @@ class AdamW(Optimizer):
                 p_norm_grad[p] = norm_grad    
                 lora_ABs_cp[p] = copy.deepcopy(p.data)
 
-                if group['update_proj_gap'] % state["step"] == 0:
+                if state["step"] % group['update_proj_gap'] == 0:
+                    print("before", p.size(), p)
+                    nn.init.normal_(p.data, std=1 / group["rank"])
+                    print("after", p.size(), p)
+
+                    """
                     p.add_(norm_grad, alpha=-step_size)
 
                     # Just adding the square of the weights to the loss function is *not*
@@ -194,6 +199,7 @@ class AdamW(Optimizer):
                     # Add weight decay at the end (fixed version)
                     if group["weight_decay"] > 0.0:
                         p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+                    """
                                   
         for group in self.param_groups:
             glore_params_name = None
