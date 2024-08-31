@@ -40,8 +40,8 @@ class GaLoreProjector:
         elif self.proj_type == 'full':
             if self.ortho_matrix is None or iter % self.update_proj_gap == 0:
                 self.ortho_matrix = self.get_orthogonal_matrix(full_rank_grad, self.rank, type='full')
-
-            low_rank_grad_A = torch.matmul(self.ortho_matrix[0].t(), full_rank_grad) 
+            print(self.ortho_matrix[0].shape, self.ortho_matrix[1].shape, full_rank_grad.shape)
+            low_rank_grad_A = torch.matmul(self.ortho_matrix[0].t(), full_rank_grad)
             low_rank_grad_B = torch.matmul(full_rank_grad, self.ortho_matrix[1].t())
             return low_rank_grad_A, low_rank_grad_B
         return low_rank_grad
