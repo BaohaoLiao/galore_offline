@@ -88,6 +88,7 @@ class AdamW(Optimizer):
         # init LoRA
         rank = 128
         if self.global_step % self.lora_init_gap == 0:
+            print("Reinitialize A and B")
             lora_ABs = {}
             for group in self.param_groups:
                 name = group["name"]
