@@ -151,8 +151,8 @@ class AdamW(Optimizer):
                 if "lora_" in group["name"]:
                     for p in group["params"]:   
                         state = self.state[p]
-                        state["exp_avg"] = torch.zeros_like(p)
-                        state["exp_avg_sq"] = torch.zeros_like(p)
+                        state["exp_avg"] = 0.5 * state["exp_avg"]
+                        state["exp_avg_sq"] = 0.5 * state["exp_avg_sq"]
                           
         else:
             lora_ABs_norm_grad = {}
