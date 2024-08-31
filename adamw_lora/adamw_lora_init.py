@@ -81,6 +81,14 @@ class AdamW(Optimizer):
         if closure is not None:
             loss = closure()
 
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+
+                if "step" not in state:
+                    state["step"] = 0
+
         # init LoRA
         rank = 128
         if self.step == 0:
@@ -132,8 +140,10 @@ class AdamW(Optimizer):
                     state = self.state[p]
 
                     # State initialization
-                    if len(state) == 0:
+                    if "step" not in state:
                         state["step"] = 0
+
+                    if "exp_avg" not in state:
                         # Exponential moving average of gradient values
                         state["exp_avg"] = torch.zeros_like(p)
                         # Exponential moving average of squared gradient values
