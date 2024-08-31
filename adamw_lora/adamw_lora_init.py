@@ -67,13 +67,15 @@ class AdamW(Optimizer):
             state = {}
             state["name"] = param_name
             state["params"] = param
+            """
             if "norm" in param_name or "ln_f" in param_name:
                 state["weight_decay"] = 0.0
             else:
                 state["weight_decay"] = weight_decay
+            """
             params.append(state)
         super().__init__(params, defaults)
-        self.global_step = 0
+        self.global_step = 1
 
     @torch.no_grad()
     def step(self, closure: Callable = None):
