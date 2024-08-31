@@ -173,6 +173,12 @@ class AdamW(Optimizer):
                         lora_A_name = ".".join(name.split(".")[:-2]) + ".lora_A.default.weight"
                         lora_B_name = ".".join(name.split(".")[:-2]) + ".lora_B.default.weight"
 
+                        step_size = group["lr"]
+                        if group["correct_bias"]:  # No bias correction for Bert
+                            bias_correction1 = 1.0 - beta1 ** state["step"]
+                            bias_correction2 = 1.0 - beta2 ** state["step"]
+                            step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
+
                         lora_A_w, lora_A_norm_grad = lora_ABs_data[lora_A_name].data, lora_ABs_norm_grad[lora_A_name]
                         lora_B_w, lora_B_norm_grad = lora_ABs_data[lora_B_name].data, lora_ABs_norm_grad[lora_B_name]
                         norm_grad = lora_B_w @ lora_A_norm_grad + lora_B_norm_grad @ lora_A_w
