@@ -418,6 +418,7 @@ def main(args):
             device_ids=[local_rank],
             output_device=local_rank,
             broadcast_buffers=False,
+            find_unused_parameters=True,
         )
 
     # global steps and others are defined above
