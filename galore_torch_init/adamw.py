@@ -157,7 +157,7 @@ class AdamW(Optimizer):
                     # In-place operations to update the averages at the same time
                     exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
                     exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-                    denom_ = exp_avg_sq.sqrt().add_(group["eps"])
+                    denom = exp_avg_sq.sqrt().add_(group["eps"])
 
                     step_size = group["lr"]
                     if group["correct_bias"]:  # No bias correction for Bert
@@ -169,7 +169,7 @@ class AdamW(Optimizer):
                 
                     norm_grad = state["projector"].project_back(norm_grad)
                     p.add_(norm_grad, alpha=-step_size)
-                    
+
 
                     if group["weight_decay"] > 0.0:
                         p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
