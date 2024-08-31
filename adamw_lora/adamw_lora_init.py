@@ -234,6 +234,10 @@ class AdamW(Optimizer):
                     exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
                     beta1, beta2 = group["betas"]
 
+                    import copy
+                    lora_ABs_exp_avg[name] = copy.deepcopy(exp_avg)
+                    lora_ABs_exp_avg_sq[name] = copy.deepcopy(exp_avg_sq)
+
                     state["step"] += 1
 
                     # Decay the first and second moment running average coefficient
@@ -248,8 +252,6 @@ class AdamW(Optimizer):
                         bias_correction2 = 1.0 - beta2 ** state["step"]
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
-                    lora_ABs_exp_avg[name] = exp_avg
-                    lora_ABs_exp_avg_sq[name] = exp_avg_sq
                     lora_ABs_data[name] = p
 
 
