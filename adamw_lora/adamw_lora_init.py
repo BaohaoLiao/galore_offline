@@ -120,7 +120,7 @@ class AdamW(Optimizer):
                 lora_ABs[lora_A_name].data = A.to(torch.bfloat16)
                 lora_ABs[lora_B_name].data = B.to(torch.bfloat16)
 
-        if self.global_step % self.lora_init_gap == self.lora_init_gap - 1:
+        elif self.global_step % self.lora_init_gap == self.lora_init_gap - 1:
             print("Merge A and B to W")
             lora_ABs = {}
             for group in self.param_groups:
