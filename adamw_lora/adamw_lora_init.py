@@ -80,6 +80,7 @@ class AdamW(Optimizer):
         if closure is not None:
             loss = closure()
 
+        """
         for group in self.param_groups:
             name = group["name"]
             if ("base_layer" in name) or ("lora" in name):
@@ -141,6 +142,7 @@ class AdamW(Optimizer):
                 # Add weight decay at the end (fixed version)
                 if group["weight_decay"] > 0.0:
                     p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+        """
 
         """
         for group in self.param_groups:
