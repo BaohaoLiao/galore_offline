@@ -73,11 +73,10 @@ class AdamW(Optimizer):
                 state["weight_decay"] = weight_decay
             params.append(state)
         super().__init__(params, defaults)
-        self.step = 0
 
     @torch.no_grad()
     def step(self, closure: Callable = None):
-        """
+        self.step = 0
         loss = None
         if closure is not None:
             loss = closure()
@@ -257,13 +256,13 @@ class AdamW(Optimizer):
                             p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
         
         self.step += 1
-        """
+
         """
         Performs a single optimization step.
 
         Arguments:
             closure (`Callable`, *optional*): A closure that reevaluates the model and returns the loss.
-        """
+
         loss = None
         if closure is not None:
             loss = closure()
@@ -391,5 +390,6 @@ class AdamW(Optimizer):
                     # Add weight decay at the end (fixed version)
                     if group["weight_decay"] > 0.0:
                         p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+        """
 
         return loss
