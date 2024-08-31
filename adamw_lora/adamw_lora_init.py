@@ -117,11 +117,8 @@ class AdamW(Optimizer):
                 B = B * m**0.25 / gamma**0.5
                 A = A * m**0.25 / gamma**0.5
 
-                lora_ABs[lora_A_name].data = A
-                #lora_ABs[lora_B_name].data = B     
-
-                print("A", A.size(), lora_ABs[lora_A_name].size()) 
-                print("B", B.size(), lora_ABs[lora_B_name].size()) 
+                lora_ABs[lora_A_name].data = A.to(torch.bfloat16)
+                #lora_ABs[lora_B_name].data = B   
                           
         else:
             lora_ABs_norm_grad = {}
