@@ -73,10 +73,11 @@ class AdamW(Optimizer):
                 state["weight_decay"] = weight_decay
             params.append(state)
         super().__init__(params, defaults)
+        self.global_step = 0
 
     @torch.no_grad()
     def step(self, closure: Callable = None):
-        self.global_step = 0
+        #self.global_step = 0
         loss = None
         if closure is not None:
             loss = closure()
