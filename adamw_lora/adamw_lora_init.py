@@ -60,9 +60,6 @@ class AdamW(Optimizer):
         if not 0.0 <= eps:
             raise ValueError(f"Invalid epsilon value: {eps} - should be >= 0.0")
         defaults = {"lr": lr, "betas": betas, "eps": eps, "weight_decay": weight_decay, "correct_bias": correct_bias}
-        self.lora_init_gap = lora_init_gap
-        self.global_step = 1
-
 
         params = []
         for param_name, param in named_params:
@@ -79,6 +76,8 @@ class AdamW(Optimizer):
             """
             params.append(state)
         super().__init__(params, defaults)
+        self.lora_init_gap = lora_init_gap
+        self.global_step = 0
 
     @torch.no_grad()
     def step(self, closure: Callable = None):
@@ -88,7 +87,7 @@ class AdamW(Optimizer):
 
         # init LoRA
         rank = 128
-        if self.global_step == 0:
+        if self.global_step % self.lora_init_gap == 0:
             lora_ABs = {}
             for group in self.param_groups:
                 name = group["name"]
