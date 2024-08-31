@@ -118,7 +118,36 @@ class AdamW(Optimizer):
                 A = A * m**0.25 / gamma**0.5
 
                 lora_ABs[lora_A_name].data = A.to(torch.bfloat16)
-                #lora_ABs[lora_B_name].data = B   
+                lora_ABs[lora_B_name].data = B.to(torch.bfloat16)
+
+        if self.global_step % self.lora_init_gap == self.lora_init_gap - 1:
+            print("Merge A and B to W")
+            lora_ABs = {}
+            for group in self.param_groups:
+                name = group["name"]
+                if "lora_" in name:
+                    assert len(group["params"]) == 1
+                    lora_ABs[name] = group["params"][0]
+
+            for group in self.param_groups:
+                name = group["name"]
+                if "base_layer" not in name:
+                    continue
+
+                assert len(group["params"]) == 1
+                lora_A_name = ".".join(name.split(".")[:-2]) + ".lora_A.default.weight"
+                lora_B_name = ".".join(name.split(".")[:-2]) + ".lora_B.default.weight"
+
+                p = group["params"][0]
+                p.data = p.data + lora_ABs[lora_B_name].data @ lora_ABs[lora_A_name].data
+                
+                lora_ABs[lora_A_name].data = torch.zeros_like(lora_ABs[lora_A_name].data)
+                lora_ABs[lora_B_name].data = torch.zeros_like(lora_ABs[lora_B_name].data)
+
+
+            for group in self.param_groups:
+                if "lora_B" in group["name"]:
+                    assert group["params"][0].sum() == 0
                           
         else:
             lora_ABs_norm_grad = {}
@@ -253,10 +282,12 @@ class AdamW(Optimizer):
                         if group["weight_decay"] > 0.0:
                             p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
 
+        """
         if self.global_step % self.lora_init_gap != 0:
             for k, v in lora_ABs_data.items():
                 if "lora_B" in k:
                     assert v.sum() == 0
+        """
 
         self.global_step += 1
 
