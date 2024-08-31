@@ -83,6 +83,69 @@ class AdamW(Optimizer):
             loss = closure()
 
         for group in self.param_groups:
+            name = group["name"]
+            if ("base_layer" in name) or ("lora" in name):
+                continue
+            for p in group["params"]:
+                if p.grad is None:
+                        continue
+                    
+                grad = p.grad
+                if grad.is_sparse:
+                    raise RuntimeError(
+                        "Adam does not support sparse gradients, please consider SparseAdam instead"
+                    )
+                        
+                state = self.state[p]
+                
+                if "step" not in state:
+                    state["step"] = 0
+                    
+                if "exp_avg" not in state:
+                    # Exponential moving average of gradient values
+                    state["exp_avg"] = torch.zeros_like(p)
+                    # Exponential moving average of squared gradient values
+                    state["exp_avg_sq"] = torch.zeros_like(p)
+
+                exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
+                beta1, beta2 = group["betas"]
+
+                state["step"] += 1
+
+                # Decay the first and second moment running average coefficient
+                # In-place operations to update the averages at the same time
+                exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                denom = exp_avg_sq.sqrt().add_(group["eps"])
+
+                step_size = group["lr"]
+                if group["correct_bias"]:  # No bias correction for Bert
+                    bias_correction1 = 1.0 - beta1 ** state["step"]
+                    bias_correction2 = 1.0 - beta2 ** state["step"]
+                    step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
+
+                # compute norm gradient
+                norm_grad = exp_avg / denom
+                
+                # scaling constant
+                # self.scaling = self.lora_alpha / self.r
+                
+                # lora scaling ?
+                p.add_(norm_grad, alpha=-step_size)
+
+                # Just adding the square of the weights to the loss function is *not*
+                # the correct way of using L2 regularization/weight decay with Adam,
+                # since that will interact with the m and v parameters in strange ways.
+                #
+                # Instead we want to decay the weights in a manner that doesn't interact
+                # with the m/v parameters. This is equivalent to adding the square
+                # of the weights to the loss with plain (non-momentum) SGD.
+                # Add weight decay at the end (fixed version)
+                if group["weight_decay"] > 0.0:
+                    p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+
+        """
+        for group in self.param_groups:
             for p in group["params"]:
                 if p.grad is None:
                     continue
@@ -90,6 +153,7 @@ class AdamW(Optimizer):
                 state = self.state[p]
                 if "step" not in state:
                     state["step"] = 0
+        """
 
         """
         # init LoRA
