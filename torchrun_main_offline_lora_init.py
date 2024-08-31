@@ -318,7 +318,7 @@ def main(args):
     
     layer_wise_flag = False
     if args.optimizer.lower() == "adamw_lora_init":
-        optimizer = AdamWLoRAInit(model.named_parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        optimizer = AdamWLoRAInit(model.named_parameters(), lr=args.lr, weight_decay=args.weight_decay, lora_init_gap=args.update_proj_gap)
     elif args.optimizer.lower() == "adam":
         optimizer = torch.optim.Adam(trainable_params, lr=args.lr, weight_decay=args.weight_decay)
     elif args.optimizer.lower() == "adamw":

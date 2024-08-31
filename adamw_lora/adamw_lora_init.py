@@ -41,6 +41,7 @@ class AdamW(Optimizer):
         weight_decay: float = 0.0,
         correct_bias: bool = True,
         no_deprecation_warning: bool = False,
+        lora_init_gap: int = 200,
     ):
         if not no_deprecation_warning:
             warnings.warn(
@@ -59,6 +60,9 @@ class AdamW(Optimizer):
         if not 0.0 <= eps:
             raise ValueError(f"Invalid epsilon value: {eps} - should be >= 0.0")
         defaults = {"lr": lr, "betas": betas, "eps": eps, "weight_decay": weight_decay, "correct_bias": correct_bias}
+        self.lora_init_gap = lora_init_gap
+        self.global_step = 1
+
 
         params = []
         for param_name, param in named_params:
@@ -75,7 +79,6 @@ class AdamW(Optimizer):
             """
             params.append(state)
         super().__init__(params, defaults)
-        self.global_step = 1
 
     @torch.no_grad()
     def step(self, closure: Callable = None):
