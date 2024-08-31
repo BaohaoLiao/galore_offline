@@ -99,10 +99,9 @@ class AdamW(Optimizer):
                             state["projector"] = GaLoreProjector(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
                         else:
                             state["projector"] = GaLoreProjectorTensor(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
-                    #grad_A, grad_B = state["projector"].project(grad, state["step"])
-                    grad = state["projector"].project(grad, state["step"])
+                    grad_A, grad_B = state["projector"].project(grad, state["step"])
+                    #grad = state["projector"].project(grad, state["step"])
 
-                    """
                     if "exp_avg" not in state:
                         # Exponential moving average of gradient values
                         state["exp_avg_A"] = torch.zeros_like(grad_A)
@@ -169,7 +168,7 @@ class AdamW(Optimizer):
                 
                     norm_grad = state["projector"].project_back(norm_grad)
                     p.add_(norm_grad, alpha=-step_size)
-
+                    """
 
                     if group["weight_decay"] > 0.0:
                         p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
