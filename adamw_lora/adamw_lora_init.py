@@ -91,6 +91,7 @@ class AdamW(Optimizer):
                     state["step"] = 0
         """
 
+        """
         # init LoRA
         rank = 128
         if self.step == 0:
@@ -258,6 +259,7 @@ class AdamW(Optimizer):
                             p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
         
         self.step += 1
+        """
 
         """
         Performs a single optimization step.
