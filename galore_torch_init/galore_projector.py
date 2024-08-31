@@ -84,8 +84,8 @@ class GaLoreProjector:
             float_data = True
             matrix = module_params.data
 
-        #U, s, Vh = torch.linalg.svd(matrix, full_matrices = False)
-        U, s, Vh = torch.svd_lowrank(matrix, q=4*rank, niter=4)
+        U, s, Vh = torch.linalg.svd(matrix, full_matrices = False)
+        #U, s, Vh = torch.svd_lowrank(matrix, q=4*rank, niter=4)
 
         #make the smaller matrix always to be orthogonal matrix
         if type=='right':
