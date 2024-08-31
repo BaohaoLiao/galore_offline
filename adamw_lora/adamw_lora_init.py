@@ -284,6 +284,7 @@ class AdamW(Optimizer):
                         exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
                         exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                         denom = exp_avg_sq.sqrt().add_(group["eps"])
+                        print(group["lr"])
 
                         norm_grad = exp_avg / denom
                         p.add_(norm_grad, alpha=-step_size)
