@@ -59,6 +59,7 @@ class AdamW(Optimizer):
         if not 0.0 <= eps:
             raise ValueError(f"Invalid epsilon value: {eps} - should be >= 0.0")
         defaults = {"lr": lr, "betas": betas, "eps": eps, "weight_decay": weight_decay, "correct_bias": correct_bias}
+        self.step = 0
 
         params = []
         for param_name, param in named_params:
@@ -76,12 +77,176 @@ class AdamW(Optimizer):
 
     @torch.no_grad()
     def step(self, closure: Callable = None):
+        loss = None
+        if closure is not None:
+            loss = closure()
+
+        # init LoRA
+        rank = 128
+        if self.step == 0:
+            lora_ABs = {}
+            for group in self.param_groups:
+                name = group["name"]
+                if "lora_" in name:
+                    assert len(group["params"]) == 1
+                    lora_ABs[name] = group["params"][0]
+
+            for group in self.param_groups:
+                name = group["name"]
+                if "base_layer" not in name:
+                    continue
+
+                assert len(group["params"]) == 1
+                lora_A_name = ".".join(name.split(".")[:-2]) + ".lora_A.default.weight"
+                lora_B_name = ".".join(name.split(".")[:-2]) + ".lora_B.default.weight"
+
+                p = group["params"][0]
+                grad = p.grad
+                U, _, V = torch.svd_lowrank(grad.float(), q=4 * rank, niter=4)
+                V = V.T
+                B = U[:, rank:2*rank]
+                A = V[:rank, :]
+
+                m, n = grad.shape
+                gamma = 16
+                B = B * m**0.25 / gamma**0.5
+                A = A * m**0.25 / gamma**0.5
+
+                lora_ABs[lora_A_name].data = A
+                lora_ABs[lora_B_name].data = B               
+        else:
+            lora_ABs_norm_grad = {}
+            lora_ABs_data = {}
+            for group in self.param_groups:
+                name = group["name"]
+                if "lora_" not in name:
+                    continue
+
+                for p in group["params"]:
+                    if p.grad is None:
+                        continue
+                    grad = p.grad
+                    if grad.is_sparse:
+                        raise RuntimeError("Adam does not support sparse gradients, please consider SparseAdam instead")
+
+                    state = self.state[p]
+
+                    # State initialization
+                    if len(state) == 0:
+                        state["step"] = 0
+                        # Exponential moving average of gradient values
+                        state["exp_avg"] = torch.zeros_like(p)
+                        # Exponential moving average of squared gradient values
+                        state["exp_avg_sq"] = torch.zeros_like(p)
+
+                    exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
+                    beta1, beta2 = group["betas"]
+
+                    state["step"] += 1
+
+                    # Decay the first and second moment running average coefficient
+                    # In-place operations to update the averages at the same time
+                    exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
+                    exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                    denom = exp_avg_sq.sqrt().add_(group["eps"])
+
+                    step_size = group["lr"]
+                    if group["correct_bias"]:  # No bias correction for Bert
+                        bias_correction1 = 1.0 - beta1 ** state["step"]
+                        bias_correction2 = 1.0 - beta2 ** state["step"]
+                        step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
+
+                    norm_grad = exp_avg / denom
+                    lora_ABs_norm_grad[name] = norm_grad
+                    assert len(group["params"]) == 1
+                    lora_ABs_data[name] = p
+
+
+            for group in self.param_groups:
+                name = group["name"] 
+                if "lora_" in name:
+                    continue
+
+                if "base_layer" in name:
+                    for p in group["params"]:
+                        assert len(group["params"]) == 1
+                        lora_A_name = ".".join(name.split(".")[:-2]) + ".lora_A.default.weight"
+                        lora_B_name = ".".join(name.split(".")[:-2]) + ".lora_B.default.weight"
+
+                        lora_A_w, lora_A_norm_grad = lora_ABs_data[lora_A_name].data, lora_ABs_norm_grad[lora_A_name]
+                        lora_B_w, lora_B_norm_grad = lora_ABs_data[lora_B_name].data, lora_ABs_norm_grad[lora_B_name]
+                        norm_grad = lora_B_w @ lora_A_norm_grad + lora_B_norm_grad @ lora_A_w
+                        p.add_(norm_grad, alpha=-step_size)
+
+                        if group["weight_decay"] > 0.0:
+                            p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+                else:
+                    for p in group["params"]:
+                        if p.grad is None:
+                                continue
+                            
+                        grad = p.grad
+                        if grad.is_sparse:
+                            raise RuntimeError(
+                                "Adam does not support sparse gradients, please consider SparseAdam instead"
+                            )
+                                
+                        state = self.state[p]
+                        
+                        if "step" not in state:
+                            state["step"] = 0
+                            
+                        if "exp_avg" not in state:
+                            # Exponential moving average of gradient values
+                            state["exp_avg"] = torch.zeros_like(p)
+                            # Exponential moving average of squared gradient values
+                            state["exp_avg_sq"] = torch.zeros_like(p)
+
+                        exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
+                        beta1, beta2 = group["betas"]
+
+                        state["step"] += 1
+
+                        # Decay the first and second moment running average coefficient
+                        # In-place operations to update the averages at the same time
+                        exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
+                        exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                        denom = exp_avg_sq.sqrt().add_(group["eps"])
+
+                        step_size = group["lr"]
+                        if group["correct_bias"]:  # No bias correction for Bert
+                            bias_correction1 = 1.0 - beta1 ** state["step"]
+                            bias_correction2 = 1.0 - beta2 ** state["step"]
+                            step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
+
+                        # compute norm gradient
+                        norm_grad = exp_avg / denom
+                        
+                        # scaling constant
+                        # self.scaling = self.lora_alpha / self.r
+                        
+                        # lora scaling ?
+                        p.add_(norm_grad, alpha=-step_size)
+
+                        # Just adding the square of the weights to the loss function is *not*
+                        # the correct way of using L2 regularization/weight decay with Adam,
+                        # since that will interact with the m and v parameters in strange ways.
+                        #
+                        # Instead we want to decay the weights in a manner that doesn't interact
+                        # with the m/v parameters. This is equivalent to adding the square
+                        # of the weights to the loss with plain (non-momentum) SGD.
+                        # Add weight decay at the end (fixed version)
+                        if group["weight_decay"] > 0.0:
+                            p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+        
+        self.step += 1
+
         """
         Performs a single optimization step.
 
         Arguments:
             closure (`Callable`, *optional*): A closure that reevaluates the model and returns the loss.
-        """
+
         loss = None
         if closure is not None:
             loss = closure()
@@ -209,5 +374,6 @@ class AdamW(Optimizer):
                     # Add weight decay at the end (fixed version)
                     if group["weight_decay"] > 0.0:
                         p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
+        """
 
         return loss
