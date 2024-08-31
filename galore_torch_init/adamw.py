@@ -99,8 +99,10 @@ class AdamW(Optimizer):
                             state["projector"] = GaLoreProjector(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
                         else:
                             state["projector"] = GaLoreProjectorTensor(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
-                    grad_A, grad_B = state["projector"].project(grad, state["step"])
+                    #grad_A, grad_B = state["projector"].project(grad, state["step"])
+                    grad = state["projector"].project(grad, state["step"])
 
+                    """
                     if "exp_avg" not in state:
                         # Exponential moving average of gradient values
                         state["exp_avg_A"] = torch.zeros_like(grad_A)
@@ -138,6 +140,36 @@ class AdamW(Optimizer):
                 
                     norm_grad = state["projector"].project_back([norm_grad_A, norm_grad_B])
                     p.add_(norm_grad, alpha=-step_size)
+                    """
+
+                    if "exp_avg" not in state:
+                        # Exponential moving average of gradient values
+                        state["exp_avg"] = torch.zeros_like(grad)
+                        # Exponential moving average of squared gradient values
+                        state["exp_avg_sq"] = torch.zeros_like(grad)
+
+                    exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
+                    beta1, beta2 = group["betas"]
+
+                    state["step"] += 1
+
+                    # Decay the first and second moment running average coefficient
+                    # In-place operations to update the averages at the same time
+                    exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
+                    exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                    denom_ = exp_avg_sq.sqrt().add_(group["eps"])
+
+                    step_size = group["lr"]
+                    if group["correct_bias"]:  # No bias correction for Bert
+                        bias_correction1 = 1.0 - beta1 ** state["step"]
+                        bias_correction2 = 1.0 - beta2 ** state["step"]
+                        step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
+
+                    norm_grad = exp_avg / denom
+                
+                    norm_grad = state["projector"].project_back(norm_grad)
+                    p.add_(norm_grad, alpha=-step_size)
+                    
 
                     if group["weight_decay"] > 0.0:
                         p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
