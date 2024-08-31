@@ -155,6 +155,7 @@ class AdamW(Optimizer):
                         state["exp_avg_sq"] = 0.5 * state["exp_avg_sq"]
                           
         else:
+            """
             lora_ABs_norm_grad = {}
             lora_ABs_data = {}
             for group in self.param_groups:
@@ -202,6 +203,54 @@ class AdamW(Optimizer):
                     lora_ABs_norm_grad[name] = norm_grad
                     assert len(group["params"]) == 1
                     lora_ABs_data[name] = p
+            """
+            lora_ABs_exp_avg = {}
+            lora_ABs_exp_avg_sq = {}
+            lora_ABs_data = {}
+            for group in self.param_groups:
+                name = group["name"]
+                if "lora_" not in name:
+                    continue
+
+                for p in group["params"]:
+                    if p.grad is None:
+                        continue
+                    grad = p.grad
+                    if grad.is_sparse:
+                        raise RuntimeError("Adam does not support sparse gradients, please consider SparseAdam instead")
+
+                    state = self.state[p]
+
+                    # State initialization
+                    if "step" not in state:
+                        state["step"] = 0
+
+                    if "exp_avg" not in state:
+                        # Exponential moving average of gradient values
+                        state["exp_avg"] = torch.zeros_like(p)
+                        # Exponential moving average of squared gradient values
+                        state["exp_avg_sq"] = torch.zeros_like(p)
+
+                    exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
+                    beta1, beta2 = group["betas"]
+
+                    state["step"] += 1
+
+                    # Decay the first and second moment running average coefficient
+                    # In-place operations to update the averages at the same time
+                    exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
+                    exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                    #denom = exp_avg_sq.sqrt().add_(group["eps"])
+
+                    step_size = group["lr"]
+                    if group["correct_bias"]:  # No bias correction for Bert
+                        bias_correction1 = 1.0 - beta1 ** state["step"]
+                        bias_correction2 = 1.0 - beta2 ** state["step"]
+                        step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
+
+                    lora_ABs_exp_avg[name] = exp_avg
+                    lora_ABs_exp_avg_sq[name] = exp_avg_sq
+                    lora_ABs_data[name] = p
 
 
             for group in self.param_groups:
@@ -212,6 +261,8 @@ class AdamW(Optimizer):
                 if "base_layer" in name:
                     for p in group["params"]:
                         assert len(group["params"]) == 1
+                        grad = p.grad
+                        assert grad is not None
                         lora_A_name = ".".join(name.split(".")[:-2]) + ".lora_A.default.weight"
                         lora_B_name = ".".join(name.split(".")[:-2]) + ".lora_B.default.weight"
 
@@ -221,9 +272,18 @@ class AdamW(Optimizer):
                             bias_correction2 = 1.0 - beta2 ** state["step"]
                             step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
-                        lora_A_w, lora_A_norm_grad = lora_ABs_data[lora_A_name].data, lora_ABs_norm_grad[lora_A_name]
-                        lora_B_w, lora_B_norm_grad = lora_ABs_data[lora_B_name].data, lora_ABs_norm_grad[lora_B_name]
-                        norm_grad = lora_B_w @ lora_A_norm_grad + lora_B_norm_grad @ lora_A_w
+                        lora_A_w, lora_A_exp_avg, lora_A_exp_avg_sq = lora_ABs_data[lora_A_name].data, lora_ABs_exp_avg[lora_A_name], lora_ABs_exp_avg_sq[lora_A_name]
+                        lora_B_w, lora_B_exp_avg, lora_B_exp_avg_sq = lora_ABs_data[lora_B_name].data, lora_ABs_exp_avg[lora_B_name], lora_ABs_exp_avg_sq[lora_B_name]
+
+                        exp_avg = torch.mul(lora_B_w, lora_B_exp_avg_sq.sqrt()) @ lora_A_exp_avg + lora_B_exp_avg @ torch.mul(lora_A_w, lora_A_exp_avg_sq.sqrt())
+                        exp_avg_sq = lora_B_exp_avg_sq @ lora_A_exp_avg_sq
+
+                        beta1, beta2 = group["betas"]
+                        exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
+                        exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                        denom = exp_avg_sq.sqrt().add_(group["eps"])
+
+                        norm_grad = exp_avg / denom
                         p.add_(norm_grad, alpha=-step_size)
 
                         if group["weight_decay"] > 0.0:
@@ -287,12 +347,6 @@ class AdamW(Optimizer):
                         if group["weight_decay"] > 0.0:
                             p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
 
-        """
-        if self.global_step % self.lora_init_gap != 0:
-            for k, v in lora_ABs_data.items():
-                if "lora_B" in k:
-                    assert v.sum() == 0
-        """
 
         self.global_step += 1
 
