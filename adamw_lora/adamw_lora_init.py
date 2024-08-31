@@ -34,7 +34,7 @@ class AdamW(Optimizer):
 
     def __init__(
         self,
-        params: Iterable[nn.parameter.Parameter],
+        named_params: Iterable[Tuple[str, nn.Parameter]],
         lr: float = 1e-3,
         betas: Tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-6,
@@ -59,6 +59,18 @@ class AdamW(Optimizer):
         if not 0.0 <= eps:
             raise ValueError(f"Invalid epsilon value: {eps} - should be >= 0.0")
         defaults = {"lr": lr, "betas": betas, "eps": eps, "weight_decay": weight_decay, "correct_bias": correct_bias}
+
+        params = []
+        for param_name, param in named_params:
+            if not param.requires_grad:
+                continue
+            state = {}
+            state["name"] = param_name
+            state["params"] = param
+            if "norm" in param_name or "ln_f" in param_name:
+                state["weight_decay"] = 0.0
+            else:
+                state["weight_decay"] = weight_decay
         super().__init__(params, defaults)
 
     @torch.no_grad()
