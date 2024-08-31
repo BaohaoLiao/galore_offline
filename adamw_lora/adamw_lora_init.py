@@ -81,6 +81,7 @@ class AdamW(Optimizer):
         if closure is not None:
             loss = closure()
 
+        """
         for group in self.param_groups:
             for p in group["params"]:
                 if p.grad is None:
@@ -88,6 +89,7 @@ class AdamW(Optimizer):
 
                 if "step" not in state:
                     state["step"] = 0
+        """
 
         # init LoRA
         rank = 128
