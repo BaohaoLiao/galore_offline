@@ -77,7 +77,7 @@ class AdamW(Optimizer):
 
     @torch.no_grad()
     def step(self, closure: Callable = None):
-        #self.global_step = 0
+        self.global_step += 1
         loss = None
         if closure is not None:
             loss = closure()
