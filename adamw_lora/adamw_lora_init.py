@@ -87,7 +87,7 @@ class AdamW(Optimizer):
 
         # init LoRA
         rank = 128
-        if self.global_step == 0:
+        if self.global_step % self.lora_init_gap == 0:
             print("Reinitialize A and B")
             lora_ABs = {}
             for group in self.param_groups:
@@ -118,7 +118,7 @@ class AdamW(Optimizer):
                 A = A * m**0.25 / gamma**0.5
 
                 lora_ABs[lora_A_name].data = A
-                lora_ABs[lora_B_name].data = B               
+                #lora_ABs[lora_B_name].data = B               
         else:
             lora_ABs_norm_grad = {}
             lora_ABs_data = {}
@@ -251,7 +251,11 @@ class AdamW(Optimizer):
                         # Add weight decay at the end (fixed version)
                         if group["weight_decay"] > 0.0:
                             p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
-        
+
+        for k, v in lora_ABs_data.items():
+            if "lora_B" in k:
+                assert v.sum() == 0
+
         self.global_step += 1
 
         """
