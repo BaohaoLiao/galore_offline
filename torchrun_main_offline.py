@@ -28,6 +28,7 @@ from peft_pretraining.modeling_llama import LlamaForCausalLM
 
 import bitsandbytes as bnb
 from galore_torch import GaLoreAdamW, GaLoreAdamW8bit, GaLoreAdafactor
+from galore_torch_init import GaLoreAdamWInit
 
 transformers.logging.set_verbosity_error()
 
@@ -303,6 +304,8 @@ def main(args):
     elif args.optimizer.lower() == "galore_adamw":
         # redefine way to call galore_adamw
         optimizer = GaLoreAdamW(param_groups, lr=args.lr, weight_decay=args.weight_decay)
+    elif args.optimizer.lower() == "galore_adamw_init":
+        optimizer = GaLoreAdamWInit(param_groups, lr=args.lr, weight_decay=args.weight_decay)
     # implement sgd
     elif args.optimizer.lower() == "sgd":
         optimizer = torch.optim.SGD(trainable_params, lr=args.lr, weight_decay=args.weight_decay, momentum=args.beta1)

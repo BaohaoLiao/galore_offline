@@ -40,8 +40,10 @@ class GaLoreProjector:
         elif self.proj_type == 'full':
             if self.ortho_matrix is None or iter % self.update_proj_gap == 0:
                 self.ortho_matrix = self.get_orthogonal_matrix(full_rank_grad, self.rank, type='full')
-            low_rank_grad = torch.matmul(self.ortho_matrix[0].t(), full_rank_grad) @ self.ortho_matrix[1].t()
 
+            low_rank_grad_A = torch.matmul(self.ortho_matrix[0].t(), full_rank_grad.t()) 
+            low_rank_grad_B = torch.matmul(self.ortho_matrix[1].t(), full_rank_grad)
+            return low_rank_grad_A, low_rank_grad_B
         return low_rank_grad
 
     def project_back(self, low_rank_grad):
@@ -61,9 +63,11 @@ class GaLoreProjector:
         elif self.proj_type == 'left':
             full_rank_grad = torch.matmul(self.ortho_matrix, low_rank_grad)
         elif self.proj_type == 'full':
-            full_rank_grad = torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1]
-
-
+            #full_rank_grad = torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1]
+            full_rank_grad_A = torch.matmul(self.ortho_matrix[0], low_rank_grad[0]).t()
+            full_rank_grad_B = torch.matmul(self.ortho_matrix[1], low_rank_grad[1])
+            full_rank_grad = (full_rank_grad_A + full_rank_grad_B) / 2            
+            
         return full_rank_grad * self.scale
 
 
@@ -95,8 +99,12 @@ class GaLoreProjector:
                 A = A.to(original_device).type(original_type)
             return A
         elif type=='full':
-            A = U[:, :rank]
-            B = Vh[:rank, :]
+            A = Vh[:, :rank]
+            B = U[:, rank:2*rank]
+            m, n = matrix.shape
+            gamma = 16
+            B = B * m**0.25 / gamma**0.5
+            A = A * m**0.25 / gamma**0.5
             if not float_data:
                 A = A.to(original_device).type(original_type)
                 B = B.to(original_device).type(original_type)
