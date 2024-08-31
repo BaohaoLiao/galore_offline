@@ -144,10 +144,15 @@ class AdamW(Optimizer):
                 lora_ABs[lora_A_name].data = torch.zeros_like(lora_ABs[lora_A_name].data)
                 lora_ABs[lora_B_name].data = torch.zeros_like(lora_ABs[lora_B_name].data)
 
-
             for group in self.param_groups:
                 if "lora_B" in group["name"]:
                     assert group["params"][0].sum() == 0
+
+                if "lora_" in group["name"]:
+                    for p in group["params"]:   
+                        state = self.state[p]
+                        state["exp_avg"] = torch.zeros_like(p)
+                        state["exp_avg_sq"] = torch.zeros_like(p)
                           
         else:
             lora_ABs_norm_grad = {}
