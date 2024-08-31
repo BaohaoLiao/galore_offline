@@ -219,11 +219,11 @@ def main(args):
             task_type=task_type,
             inference_mode=False,
             r=args.rank,
-            lora_alpha=16, #args.rank,
+            lora_alpha=args.rank,
             lora_dropout=0,
             target_modules=target_modules,
             init_lora_weights = True,
-            use_rslora = True,
+            use_rslora = False,
         )
         model = get_peft_model(model, lora_config)
 

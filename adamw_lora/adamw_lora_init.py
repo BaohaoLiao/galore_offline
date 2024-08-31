@@ -120,7 +120,7 @@ class AdamW(Optimizer):
                 lora_ABs[lora_A_name].data = A
                 lora_ABs[lora_B_name].data = B
 
-                p.data = p.data - 16/math.sqrt(128) * B @ A
+                p.data = p.data - B @ A
             
             """
             elif self.global_step % self.lora_init_gap == self.lora_init_gap - 1:
