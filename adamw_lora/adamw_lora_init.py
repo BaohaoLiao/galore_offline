@@ -87,7 +87,7 @@ class AdamW(Optimizer):
 
         # init LoRA
         rank = 128
-        if self.global_step % self.lora_init_gap == 0:
+        if self.global_step == 0:
             print("Reinitialize A and B")
             lora_ABs = {}
             for group in self.param_groups:
@@ -114,48 +114,50 @@ class AdamW(Optimizer):
 
                 m, n = grad.shape
                 gamma = 16
-                B = B * m**0.25 / gamma**0.5
-                A = A * m**0.25 / gamma**0.5
+                B = (B * m**0.25 / gamma**0.5).to(torch.bfloat16)
+                A = (A * m**0.25 / gamma**0.5).to(torch.bfloat16)
 
-                lora_ABs[lora_A_name].data = A.to(torch.bfloat16)
-                lora_ABs[lora_B_name].data = B.to(torch.bfloat16)
+                lora_ABs[lora_A_name].data = A
+                lora_ABs[lora_B_name].data = B
 
-        elif self.global_step % self.lora_init_gap == self.lora_init_gap - 1:
-            print("Merge A and B to W")
-            lora_ABs = {}
-            for group in self.param_groups:
-                name = group["name"]
-                if "lora_" in name:
-                    assert len(group["params"]) == 1
-                    lora_ABs[name] = group["params"][0]
-
-            for group in self.param_groups:
-                name = group["name"]
-                if "base_layer" not in name:
-                    continue
-
-                assert len(group["params"]) == 1
-                lora_A_name = ".".join(name.split(".")[:-2]) + ".lora_A.default.weight"
-                lora_B_name = ".".join(name.split(".")[:-2]) + ".lora_B.default.weight"
-
-                p = group["params"][0]
-                p.data = p.data + lora_ABs[lora_B_name].data @ lora_ABs[lora_A_name].data
-                
-                lora_ABs[lora_A_name].data = torch.zeros_like(lora_ABs[lora_A_name].data)
-                lora_ABs[lora_B_name].data = torch.zeros_like(lora_ABs[lora_B_name].data)
-
-            for group in self.param_groups:
-                if "lora_B" in group["name"]:
-                    assert group["params"][0].sum() == 0
-
-                if "lora_" in group["name"]:
-                    for p in group["params"]:   
-                        state = self.state[p]
-                        state["exp_avg"] = 0.5 * state["exp_avg"]
-                        state["exp_avg_sq"] = 0.5 * state["exp_avg_sq"]
-                          
-        else:
+                p.data = p.data - 16/math.sqrt(128) * B @ A
+            
             """
+            elif self.global_step % self.lora_init_gap == self.lora_init_gap - 1:
+                print("Merge A and B to W")
+                lora_ABs = {}
+                for group in self.param_groups:
+                    name = group["name"]
+                    if "lora_" in name:
+                        assert len(group["params"]) == 1
+                        lora_ABs[name] = group["params"][0]
+
+                for group in self.param_groups:
+                    name = group["name"]
+                    if "base_layer" not in name:
+                        continue
+
+                    assert len(group["params"]) == 1
+                    lora_A_name = ".".join(name.split(".")[:-2]) + ".lora_A.default.weight"
+                    lora_B_name = ".".join(name.split(".")[:-2]) + ".lora_B.default.weight"
+
+                    p = group["params"][0]
+                    p.data = p.data + lora_ABs[lora_B_name].data @ lora_ABs[lora_A_name].data
+                    
+                    lora_ABs[lora_A_name].data = torch.zeros_like(lora_ABs[lora_A_name].data)
+                    lora_ABs[lora_B_name].data = torch.zeros_like(lora_ABs[lora_B_name].data)
+
+                for group in self.param_groups:
+                    if "lora_B" in group["name"]:
+                        assert group["params"][0].sum() == 0
+
+                    if "lora_" in group["name"]:
+                        for p in group["params"]:   
+                            state = self.state[p]
+                            state["exp_avg"] = 0.5 * state["exp_avg"]
+                            state["exp_avg_sq"] = 0.5 * state["exp_avg_sq"]
+            """               
+        else:
             lora_ABs_norm_grad = {}
             lora_ABs_data = {}
             for group in self.param_groups:
@@ -203,6 +205,7 @@ class AdamW(Optimizer):
                     lora_ABs_norm_grad[name] = norm_grad
                     assert len(group["params"]) == 1
                     lora_ABs_data[name] = p
+
             """
             lora_ABs_exp_avg = {}
             lora_ABs_exp_avg_sq = {}
@@ -253,7 +256,7 @@ class AdamW(Optimizer):
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
                     lora_ABs_data[name] = p
-
+            """
 
             for group in self.param_groups:
                 name = group["name"] 
@@ -274,6 +277,12 @@ class AdamW(Optimizer):
                             bias_correction2 = 1.0 - beta2 ** state["step"]
                             step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
+                        lora_A_w, lora_A_norm_grad = lora_ABs_norm_grad[lora_A_name].data, lora_ABs_norm_grad[lora_A_name]
+                        lora_B_w, lora_B_norm_grad = lora_ABs_norm_grad[lora_B_name].data, lora_ABs_norm_grad[lora_B_name]
+                        norm_grad = lora_B_w @ lora_A_norm_grad + lora_B_norm_grad @ lora_A_w
+                        p.add_(norm_grad, alpha=-step_size)
+
+                        """
                         lora_A_w, lora_A_exp_avg, lora_A_exp_avg_sq = lora_ABs_data[lora_A_name].data, lora_ABs_exp_avg[lora_A_name], lora_ABs_exp_avg_sq[lora_A_name]
                         lora_B_w, lora_B_exp_avg, lora_B_exp_avg_sq = lora_ABs_data[lora_B_name].data, lora_ABs_exp_avg[lora_B_name], lora_ABs_exp_avg_sq[lora_B_name]
 
@@ -287,7 +296,7 @@ class AdamW(Optimizer):
 
                         norm_grad = exp_avg / denom
                         p.add_(norm_grad, alpha=-step_size)
-
+                        """
                         if group["weight_decay"] > 0.0:
                             p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
                 else:
