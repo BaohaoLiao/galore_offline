@@ -71,6 +71,7 @@ class AdamW(Optimizer):
                 state["weight_decay"] = 0.0
             else:
                 state["weight_decay"] = weight_decay
+            params.append(state)
         super().__init__(params, defaults)
 
     @torch.no_grad()
