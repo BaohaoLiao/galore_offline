@@ -67,14 +67,14 @@ class GaLoreProjector:
             full_rank_grad = torch.matmul(self.ortho_matrix, low_rank_grad)
         elif self.proj_type == 'full':
             #full_rank_grad = torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1]
-            if low_rank_grad.shape[0] > low_rank_grad.shape[1]:
-                full_rank_grad = torch.matmul(low_rank_grad, self.ortho_matrix[1]) 
-            else:
-                full_rank_grad = torch.matmul(self.ortho_matrix[0], low_rank_grad)
-            #if low_rank_grad[1].shape[0] < low_rank_grad[0].shape[1]:
-            #    full_rank_grad = torch.matmul(low_rank_grad[1], self.ortho_matrix[1])
+            #if low_rank_grad.shape[0] > low_rank_grad.shape[1]:
+            #    full_rank_grad = torch.matmul(low_rank_grad, self.ortho_matrix[1]) 
             #else:
-            #    full_rank_grad = torch.matmul(self.ortho_matrix[0], low_rank_grad[0])
+            #    full_rank_grad = torch.matmul(self.ortho_matrix[0], low_rank_grad)
+            if low_rank_grad[1].shape[0] >= low_rank_grad[0].shape[1]:
+                full_rank_grad = torch.matmul(low_rank_grad[1], self.ortho_matrix[1])
+            else:
+                full_rank_grad = torch.matmul(self.ortho_matrix[0], low_rank_grad[0])
                 
             #full_rank_grad_A = torch.matmul(self.ortho_matrix[0], low_rank_grad[0])
             #full_rank_grad_B = torch.matmul(low_rank_grad[1], self.ortho_matrix[1])
