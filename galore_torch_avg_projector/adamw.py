@@ -123,7 +123,9 @@ class AdamW(Optimizer):
 
                 if "rank" in group:
                     exp_avg_proj = state["exp_avg_projector"]
-                    exp_avg_proj.mul_(beta1).add_(ortho_matrix, alpha=(1.0 - beta1))
+
+                    if state["step"] == 1 or state["step"] % group["update_proj_gap"] == 0:
+                        exp_avg_proj.mul_(1.0 - beta1).add_(ortho_matrix, alpha=(beta1))
 
                 step_size = group["lr"]
                 if group["correct_bias"]:  # No bias correction for Bert
