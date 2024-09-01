@@ -102,14 +102,13 @@ class AdamW(Optimizer):
                     grad_A, grad_B = state["projector"].project(grad, state["step"])
                     #grad = state["projector"].project(grad, state["step"])
 
-                    if grad.shape[0] >= grad.shape[1]:
-                        #_, grad = state["projector"].project(grad, state["step"])
-                        grad = grad_B
-                    else:
-                        #grad, _ = state["projector"].project(grad, state["step"])
-                        grad = grad_A
+                    #if grad.shape[0] >= grad.shape[1]:
+                    #    #_, grad = state["projector"].project(grad, state["step"])
+                    #    grad = grad_B
+                    #else:
+                    #    #grad, _ = state["projector"].project(grad, state["step"])
+                    #    grad = grad_A
             
-                    """
                     if "exp_avg" not in state:
                         # Exponential moving average of gradient values
                         state["exp_avg_A"] = torch.zeros_like(grad_A)
@@ -142,10 +141,12 @@ class AdamW(Optimizer):
                         bias_correction2 = 1.0 - beta2 ** state["step"]
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
-                    norm_grad_A = exp_avg_A / denom_A
-                    norm_grad_B = exp_avg_B / denom_B
+                    if grad.shape[0] >= grad.shape[1]:
+                        norm_grad = exp_avg_B / denom_B
+                    else:
+                        norm_grad = exp_avg_A / denom_A
                 
-                    norm_grad = state["projector"].project_back([norm_grad_A, norm_grad_B])
+                    norm_grad = state["projector"].project_back(norm_grad)  #[norm_grad_A, norm_grad_B])
                     p.add_(norm_grad, alpha=-step_size)
                     """
 
@@ -173,10 +174,11 @@ class AdamW(Optimizer):
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
                     norm_grad = exp_avg / denom
+            
                 
                     norm_grad = state["projector"].project_back(norm_grad)
                     p.add_(norm_grad, alpha=-step_size)
-
+                    """
 
                     if group["weight_decay"] > 0.0:
                         p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
