@@ -123,8 +123,8 @@ class GaLoreProjector:
                 B = B.to(original_device).type(original_type)
             return [A, B]
             """
-            A = U[:, :rank]
-            B = Vh[rank:2*rank, :]
+            A = U[:, rank:2*rank]
+            B = Vh[:rank, :]
 
             """
             option 1: 61.75
@@ -134,6 +134,10 @@ class GaLoreProjector:
             option 2: not good 
             A = U[:, :rank]
             B = Vh[:rank, :]
+
+            option 3: 96.81
+            A = U[:, :rank]
+            B = Vh[rank:2*rank, :]
             """
             m, n = matrix.shape
             gamma = 16
