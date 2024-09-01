@@ -128,12 +128,10 @@ class GaLoreProjector:
 
             A = U[:, rank:2*rank]
             B = Vh[:rank, :]
-            """
             m, n = matrix.shape
             gamma = 16
             B = B * m**0.25 / gamma**0.5
             A = A * m**0.25 / gamma**0.5
-            """
             
             if not float_data:
                 A = A.to(original_device).type(original_type)
