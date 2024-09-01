@@ -102,14 +102,7 @@ class AdamW(Optimizer):
                     grad_A, grad_B = state["projector"].project(grad, state["step"])
                     #grad = state["projector"].project(grad, state["step"])
 
-                    #if grad.shape[0] >= grad.shape[1]:
-                    #    #_, grad = state["projector"].project(grad, state["step"])
-                    #    grad = grad_B
-                    #else:
-                    #    #grad, _ = state["projector"].project(grad, state["step"])
-                    #    grad = grad_A
-            
-                    if "exp_avg" not in state:
+                    if "exp_avg_A" not in state:
                         # Exponential moving average of gradient values
                         state["exp_avg_A"] = torch.zeros_like(grad_A)
                         # Exponential moving average of squared gradient values
@@ -148,8 +141,8 @@ class AdamW(Optimizer):
                 
                     norm_grad = state["projector"].project_back(norm_grad)  #[norm_grad_A, norm_grad_B])
                     p.add_(norm_grad, alpha=-step_size)
-                    """
 
+                    """
                     if "exp_avg" not in state:
                         # Exponential moving average of gradient values
                         state["exp_avg"] = torch.zeros_like(grad)
