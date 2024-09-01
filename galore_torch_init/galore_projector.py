@@ -78,7 +78,7 @@ class GaLoreProjector:
                 
             full_rank_grad_A = torch.matmul(self.ortho_matrix[0], low_rank_grad[0])
             full_rank_grad_B = torch.matmul(low_rank_grad[1], self.ortho_matrix[1])
-            full_rank_grad = (full_rank_grad_A + full_rank_grad_B) / 2            
+            full_rank_grad = full_rank_grad_A + full_rank_grad_B       
 
         return full_rank_grad * self.scale
 
@@ -129,11 +129,12 @@ class GaLoreProjector:
             """
             A = U[:, rank:2*rank]
             B = Vh[:rank, :]
+            """
             m, n = matrix.shape
             gamma = 16
             B = B * m**0.25 / gamma**0.5
             A = A * m**0.25 / gamma**0.5
-            """
+            
             if not float_data:
                 A = A.to(original_device).type(original_type)
                 B = B.to(original_device).type(original_type)

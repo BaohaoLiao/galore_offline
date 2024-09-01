@@ -139,9 +139,9 @@ class AdamW(Optimizer):
                     #else:
                     norm_grad_A = exp_avg_A / denom_A
                 
-                    #norm_grad = state["projector"].project_back([norm_grad_A, norm_grad_B])
+                    norm_grad = state["projector"].project_back([norm_grad_A, norm_grad_B])
 
-                    norm_grad = grad_B @ norm_grad_A + norm_grad_B @ grad_A
+                    #norm_grad = grad_B @ norm_grad_A + norm_grad_B @ grad_A
 
                     p.add_(norm_grad, alpha=-step_size)
 
