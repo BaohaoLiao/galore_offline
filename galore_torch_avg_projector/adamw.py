@@ -107,9 +107,10 @@ class AdamW(Optimizer):
                     state["exp_avg"] = torch.zeros_like(grad)
                     # Exponential moving average of squared gradient values
                     state["exp_avg_sq"] = torch.zeros_like(grad)
-                    state["exp_avg_projector"] = torch.zeros_like(ortho_matrix)
+                    if "rank" in group:
+                        state["exp_avg_projector"] = torch.zeros_like(ortho_matrix)
 
-                exp_avg, exp_avg_sq, exp_avg_proj = state["exp_avg"], state["exp_avg_sq"], state["exp_avg_projector"]
+                exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
                 beta1, beta2 = group["betas"]
 
                 state["step"] += 1
@@ -119,7 +120,10 @@ class AdamW(Optimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 denom = exp_avg_sq.sqrt().add_(group["eps"])
-                exp_avg_proj.mul_(beta1).add_(ortho_matrix, alpha=(1.0 - beta1))
+
+                if "rank" in group:
+                    exp_avg_proj = state["exp_avg_projector"]
+                    exp_avg_proj.mul_(beta1).add_(ortho_matrix, alpha=(1.0 - beta1))
 
                 step_size = group["lr"]
                 if group["correct_bias"]:  # No bias correction for Bert
