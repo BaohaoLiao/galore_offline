@@ -134,12 +134,12 @@ class AdamW(Optimizer):
                         bias_correction2 = 1.0 - beta2 ** state["step"]
                         step_size = step_size * math.sqrt(bias_correction2) / bias_correction1
 
-                    if grad.shape[0] >= grad.shape[1]:
-                        norm_grad = exp_avg_B / denom_B
-                    else:
-                        norm_grad = exp_avg_A / denom_A
+                    #if grad.shape[0] >= grad.shape[1]:
+                    norm_grad_B = exp_avg_B / denom_B
+                    #else:
+                    norm_grad_B = exp_avg_A / denom_A
                 
-                    norm_grad = state["projector"].project_back(norm_grad)  #[norm_grad_A, norm_grad_B])
+                    norm_grad = state["projector"].project_back([norm_grad_A, norm_grad_B])
                     p.add_(norm_grad, alpha=-step_size)
 
                     """
