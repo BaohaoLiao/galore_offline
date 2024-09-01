@@ -124,11 +124,15 @@ class GaLoreProjector:
             return [A, B]
             """
             A = U[:, :rank]
-            B = Vh[:rank, :]
+            B = Vh[rank:2*rank, :]
 
             """
             option 1: 61.75
             A = U[:, rank:2*rank]
+            B = Vh[:rank, :]
+
+            option 2: not good 
+            A = U[:, :rank]
             B = Vh[:rank, :]
             """
             m, n = matrix.shape
