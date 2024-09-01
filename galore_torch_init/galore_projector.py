@@ -126,6 +126,7 @@ class GaLoreProjector:
             #A = U[:, :rank]
             #B = Vh[:rank, :]
 
+            print(Vh.size(), U.size())
             Vh = Vh.T
             A = U[:, rank:2*rank]
             B = Vh[:rank, :]
