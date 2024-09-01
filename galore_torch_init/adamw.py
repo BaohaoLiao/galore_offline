@@ -137,7 +137,7 @@ class AdamW(Optimizer):
                     #if grad.shape[0] >= grad.shape[1]:
                     norm_grad_B = exp_avg_B / denom_B
                     #else:
-                    norm_grad_B = exp_avg_A / denom_A
+                    norm_grad_A = exp_avg_A / denom_A
                 
                     norm_grad = state["projector"].project_back([norm_grad_A, norm_grad_B])
                     p.add_(norm_grad, alpha=-step_size)
