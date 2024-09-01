@@ -103,9 +103,11 @@ class AdamW(Optimizer):
                     #grad = state["projector"].project(grad, state["step"])
 
                     if grad.shape[0] >= grad.shape[1]:
-                        _, grad = state["projector"].project(grad, state["step"])
+                        #_, grad = state["projector"].project(grad, state["step"])
+                        grad = grad_B
                     else:
-                        grad, _ = state["projector"].project(grad, state["step"])
+                        #grad, _ = state["projector"].project(grad, state["step"])
+                        grad = grad_A
 
                     """
                     if "exp_avg" not in state:
