@@ -42,11 +42,11 @@ class GaLoreProjector:
                 self.ortho_matrix = self.get_orthogonal_matrix(full_rank_grad, self.rank, type='full')
             low_rank_grad_A = torch.matmul(self.ortho_matrix[0].t(), full_rank_grad)
             low_rank_grad_B = torch.matmul(full_rank_grad, self.ortho_matrix[1].t())
-            if full_rank_grad.shape[0] >= full_rank_grad.shape[1]:
-                return low_rank_grad_B
-            else:
-                return low_rank_grad_A
-            #return low_rank_grad_A, low_rank_grad_B
+            #if full_rank_grad.shape[0] >= full_rank_grad.shape[1]:
+            #    return low_rank_grad_B
+            #else:
+            #    return low_rank_grad_A
+            return low_rank_grad_A, low_rank_grad_B
         return low_rank_grad
 
     def project_back(self, low_rank_grad):
