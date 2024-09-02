@@ -91,15 +91,6 @@ class AdamW(Optimizer):
                 
                 if 'dim' not in group:
                     group['dim'] = 2
-                    
-                # GaLore Projection
-                if "rank" in group:
-                    if "projector" not in state:
-                        if group['dim'] <=2:
-                            state["projector"] = GaLoreProjector(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
-                        else:
-                            state["projector"] = GaLoreProjectorTensor(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
-                    ortho_matrix, grad = state["projector"].project(grad, state["step"])
 
                 # State initialization
                 if "exp_avg" not in state:
@@ -107,11 +98,18 @@ class AdamW(Optimizer):
                     state["exp_avg"] = torch.zeros_like(grad)
                     # Exponential moving average of squared gradient values
                     state["exp_avg_sq"] = torch.zeros_like(grad)
-                    if "rank" in group:
-                        state["exp_avg_projector"] = torch.zeros_like(ortho_matrix)
 
                 exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
                 beta1, beta2 = group["betas"]
+
+                 # GaLore Projection
+                if "rank" in group:
+                    if "projector" not in state:
+                        if group['dim'] <=2:
+                            state["projector"] = GaLoreProjector(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
+                        else:
+                            state["projector"] = GaLoreProjectorTensor(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
+                    grad, exp_avg = state["projector"].project(grad, state["step"], exp_avg)
 
                 state["step"] += 1
 
@@ -120,12 +118,6 @@ class AdamW(Optimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 denom = exp_avg_sq.sqrt().add_(group["eps"])
-
-                if "rank" in group:
-                    exp_avg_proj = state["exp_avg_projector"]
-
-                    if state["step"] == 1 or state["step"] % group["update_proj_gap"] == 0:
-                        exp_avg_proj.mul_(1.0 - beta1).add_(ortho_matrix, alpha=(beta1))
 
                 step_size = group["lr"]
                 if group["correct_bias"]:  # No bias correction for Bert
@@ -138,7 +130,7 @@ class AdamW(Optimizer):
                 
                 # GaLore Projection Back
                 if "rank" in group:
-                    norm_grad = state["projector"].project_back(norm_grad, exp_avg_proj)
+                    norm_grad = state["projector"].project_back(norm_grad)
                 
                 p.add_(norm_grad, alpha=-step_size)
 
