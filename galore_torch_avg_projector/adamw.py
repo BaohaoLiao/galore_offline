@@ -92,6 +92,18 @@ class AdamW(Optimizer):
                 if 'dim' not in group:
                     group['dim'] = 2
 
+                 # GaLore Projection
+                if "rank" in group:
+                    if "projector" not in state:
+                        if group['dim'] <=2:
+                            state["projector"] = GaLoreProjector(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
+                        else:
+                            state["projector"] = GaLoreProjectorTensor(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
+                    if state["step"] == 0:
+                        grad = state["projector"].project_init(grad)
+                    else:
+                        grad, exp_avg = state["projector"].project(grad, state["step"], exp_avg)
+
                 # State initialization
                 if "exp_avg" not in state:
                     # Exponential moving average of gradient values
@@ -101,15 +113,6 @@ class AdamW(Optimizer):
 
                 exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
                 beta1, beta2 = group["betas"]
-
-                 # GaLore Projection
-                if "rank" in group:
-                    if "projector" not in state:
-                        if group['dim'] <=2:
-                            state["projector"] = GaLoreProjector(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
-                        else:
-                            state["projector"] = GaLoreProjectorTensor(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
-                    grad, exp_avg = state["projector"].project(grad, state["step"], exp_avg)
 
                 state["step"] += 1
 
