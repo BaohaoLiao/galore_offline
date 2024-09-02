@@ -19,26 +19,22 @@ class GaLoreProjector:
                 low_rank_grad = torch.matmul(self.ortho_matrix.t(), full_rank_grad)
             return low_rank_grad
     
-    def project(self, full_rank_grad, iter, exp_avg, exp_avg_sq):
+    def project(self, full_rank_grad, iter, exp_avg):
         if self.proj_type == 'std':
             if full_rank_grad.shape[0] >= full_rank_grad.shape[1]:
                 if self.ortho_matrix is None or iter % self.update_proj_gap == 0:
                     full_rank_exp_avg = self.project_back(exp_avg)
-                    full_rank_exp_avg_sq = self.project_back(exp_avg_sq)
                     self.ortho_matrix = self.get_orthogonal_matrix(full_rank_grad, self.rank, type='right')
                     exp_avg = torch.matmul(full_rank_exp_avg, self.ortho_matrix.t())
-                    exp_avg_sq = torch.matmul(full_rank_exp_avg_sq, self.ortho_matrix.t())
                 low_rank_grad = torch.matmul(full_rank_grad, self.ortho_matrix.t())
             else:
                 if self.ortho_matrix is None or iter % self.update_proj_gap == 0:
                     full_rank_exp_avg = self.project_back(exp_avg)
-                    full_rank_exp_avg_sq = self.project_back(exp_avg_sq)
                     self.ortho_matrix = self.get_orthogonal_matrix(full_rank_grad, self.rank, type='left')
                     exp_avg = torch.matmul(self.ortho_matrix.t(), full_rank_exp_avg)
-                    exp_avg_sq = torch.matmul(self.ortho_matrix.t(), full_rank_exp_avg_sq)
                 low_rank_grad = torch.matmul(self.ortho_matrix.t(), full_rank_grad)
 
-            return low_rank_grad, exp_avg, exp_avg_sq
+            return low_rank_grad, exp_avg
         elif self.proj_type == 'reverse_std':
             if full_rank_grad.shape[0] >= full_rank_grad.shape[1]:
                 if self.ortho_matrix is None or iter % self.update_proj_gap == 0:

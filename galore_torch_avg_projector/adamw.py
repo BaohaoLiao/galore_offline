@@ -112,7 +112,7 @@ class AdamW(Optimizer):
                 beta1, beta2 = group["betas"]
 
                 if "rank" in group and state["step"] !=0:
-                    grad, exp_avg, exp_avg_sq = state["projector"].project(grad, state["step"], exp_avg, exp_avg_sq)
+                    grad, exp_avg = state["projector"].project(grad, state["step"], exp_avg)
 
                 state["step"] += 1
 
@@ -136,7 +136,6 @@ class AdamW(Optimizer):
                 if "rank" in group:
                     norm_grad = state["projector"].project_back(norm_grad)
                     state["exp_avg"] = exp_avg
-                    state["exp_avg_sq"] = exp_avg_sq
                 
                 p.add_(norm_grad, alpha=-step_size)
 
