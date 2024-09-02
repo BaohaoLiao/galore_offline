@@ -112,14 +112,14 @@ class AdamW(Optimizer):
                 beta1, beta2 = group["betas"]
 
                 if "rank" in group and state["step"] !=0:
-                    grad, exp_avg = state["projector"].project(grad, state["step"], exp_avg)
+                    grad, exp_avg, exp_avg_sq = state["projector"].project(grad, state["step"], exp_avg, exp_avg_sq)
 
                 state["step"] += 1
 
                 # Decay the first and second moment running average coefficient
                 # In-place operations to update the averages at the same time
-                #exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
-                exp_avg = beta1 * exp_avg + (1.0 - beta1) * grad
+                exp_avg.mul_(beta1).add_(grad, alpha=(1.0 - beta1))
+                #exp_avg = beta1 * exp_avg + (1.0 - beta1) * grad
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 denom = exp_avg_sq.sqrt().add_(group["eps"])
 
@@ -135,7 +135,8 @@ class AdamW(Optimizer):
                 # GaLore Projection Back
                 if "rank" in group:
                     norm_grad = state["projector"].project_back(norm_grad)
-                state["exp_avg"] = exp_avg
+                    state["exp_avg"] = exp_avg
+                    state["exp_avg_sq"] = exp_avg_sq
                 
                 p.add_(norm_grad, alpha=-step_size)
 
