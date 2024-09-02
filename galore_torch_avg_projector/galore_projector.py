@@ -67,7 +67,7 @@ class GaLoreProjector:
 
         if self.proj_type == 'std':
             if low_rank_grad.shape[0] >= low_rank_grad.shape[1]:
-                full_rank_grad = torch.matmul(self.low_rank_grad, self.ortho_matrix)
+                full_rank_grad = torch.matmul(low_rank_grad, self.ortho_matrix)
             else:
                 full_rank_grad = torch.matmul(self.ortho_matrix, low_rank_grad)
         elif self.proj_type == 'reverse_std':
