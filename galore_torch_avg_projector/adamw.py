@@ -99,10 +99,7 @@ class AdamW(Optimizer):
                             state["projector"] = GaLoreProjector(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
                         else:
                             state["projector"] = GaLoreProjectorTensor(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
-                    if state["step"] == 0:
                         grad = state["projector"].project_init(grad)
-                    else:
-                        grad, exp_avg = state["projector"].project(grad, state["step"], exp_avg)
 
                 # State initialization
                 if "exp_avg" not in state:
@@ -113,6 +110,9 @@ class AdamW(Optimizer):
 
                 exp_avg, exp_avg_sq = state["exp_avg"], state["exp_avg_sq"]
                 beta1, beta2 = group["betas"]
+
+                if "rank" in group and state["step"] !=0:
+                    grad, exp_avg = state["projector"].project(grad, state["step"], exp_avg)
 
                 state["step"] += 1
 
@@ -134,6 +134,7 @@ class AdamW(Optimizer):
                 # GaLore Projection Back
                 if "rank" in group:
                     norm_grad = state["projector"].project_back(norm_grad)
+                    state["exp_avg"] = exp_avg
                 
                 p.add_(norm_grad, alpha=-step_size)
 
