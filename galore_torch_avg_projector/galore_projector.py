@@ -63,24 +63,24 @@ class GaLoreProjector:
 
         return low_rank_grad
 
-    def project_back(self, ortho_matrix):
+    def project_back(self, low_rank_grad):
 
         if self.proj_type == 'std':
-            if self.low_rank_grad.shape[0] >= self.low_rank_grad.shape[1]:
-                full_rank_grad = torch.matmul(self.low_rank_grad, ortho_matrix)
+            if low_rank_grad.shape[0] >= low_rank_grad.shape[1]:
+                full_rank_grad = torch.matmul(self.low_rank_grad, self.ortho_matrix)
             else:
-                full_rank_grad = torch.matmul(ortho_matrix, self.low_rank_grad)
+                full_rank_grad = torch.matmul(self.ortho_matrix, low_rank_grad)
         elif self.proj_type == 'reverse_std':
-            if self.low_rank_grad.shape[0] <= self.low_rank_grad.shape[1]: # note this is different from std
-                full_rank_grad = torch.matmul(ortho_matrix, self.low_rank_grad)
+            if low_rank_grad.shape[0] <= low_rank_grad.shape[1]: # note this is different from std
+                full_rank_grad = torch.matmul(self.ortho_matrix, low_rank_grad)
             else:
-                full_rank_grad = torch.matmul(self.low_rank_grad, ortho_matrix)
+                full_rank_grad = torch.matmul(low_rank_grad, self.ortho_matrix)
         elif self.proj_type == 'right':
-            full_rank_grad = torch.matmul(self.low_rank_grad, ortho_matrix)
+            full_rank_grad = torch.matmul(low_rank_grad, self.ortho_matrix)
         elif self.proj_type == 'left':
-            full_rank_grad = torch.matmul(ortho_matrix, self.low_rank_grad)
+            full_rank_grad = torch.matmul(self.ortho_matrix, low_rank_grad)
         elif self.proj_type == 'full':
-            full_rank_grad = torch.matmul(ortho_matrix[0], self.low_rank_grad) @ ortho_matrix[1]
+            full_rank_grad = torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1]
 
         return full_rank_grad * self.scale
 
