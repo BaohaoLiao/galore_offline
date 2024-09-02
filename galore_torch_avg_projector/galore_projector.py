@@ -94,15 +94,18 @@ class GaLoreProjector:
             matrix = module_params.data
 
         U, s, Vh = torch.linalg.svd(matrix, full_matrices = False)
-
+        m, n = matrix.shape
+        gamma = 16
         #make the smaller matrix always to be orthogonal matrix
         if type=='right':
             B = Vh[:rank, :]
+            B = B * m**0.25 / gamma**0.5
             if not float_data:
                 B = B.to(original_device).type(original_type)
             return B
         elif type=='left':
             A = U[:, :rank]
+            A = A * m**0.25 / gamma**0.5
             if not float_data:
                 A = A.to(original_device).type(original_type)
             return A
