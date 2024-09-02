@@ -35,7 +35,7 @@ class GaLoreProjector:
                         full_rank_exp_avg = self.project_back(exp_avg)
                     self.ortho_matrix = self.get_orthogonal_matrix(full_rank_grad, self.rank, type='left')
                     if iter != 0:
-                        exp_avg = torch.matmul(full_rank_exp_avg, self.ortho_matrix.t())
+                        exp_avg = torch.matmul(self.ortho_matrix.t(), full_rank_exp_avg)
                 low_rank_grad = torch.matmul(self.ortho_matrix.t(), full_rank_grad)
 
             return low_rank_grad, exp_avg
